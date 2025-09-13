@@ -1,0 +1,93 @@
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb; /* gray-200 */
+  border-radius: 10px;
+  background: #fff;
+  transition: all 0.25s ease;
+}
+
+.item:hover {
+  background: #f9fafb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.completed {
+  opacity: 0.7;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 2px;
+  text-decoration: none;
+}
+
+.completed .title {
+  text-decoration: line-through;
+  color: #6b7280; /* gray-500 */
+}
+
+.meta {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  color: #64748b; /* gray-500 */
+}
+
+.dueDate {
+  font-style: italic;
+}
+
+.priority {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+/* Badge màu theo priority */
+.low {
+  background: #fef9c3; /* yellow-100 */
+  color: #ca8a04; /* yellow-600 */
+}
+
+.medium {
+  background: #dbeafe; /* blue-100 */
+  color: #2563eb; /* blue-600 */
+}
+
+.high {
+  background: #fee2e2; /* red-100 */
+  color: #dc2626; /* red-600 */
+}
+
+.deleteBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #ef4444; /* red-500 */
+  font-size: 16px;
+  padding: 4px;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.deleteBtn:hover {
+  transform: scale(1.2);
+  color: #b91c1c; /* red-700 */
+}

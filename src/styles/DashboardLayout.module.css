@@ -1,0 +1,44 @@
+.layout {
+  display: flex;
+  height: 100vh; /* toàn màn hình */
+  overflow: hidden; /* chặn scroll body */
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f3f4f6;
+  padding: 0; /* bỏ padding ngoài */
+  overflow: hidden; /* không cho main scroll */
+}
+
+/* Header cố định */
+.header {
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Content scroll riêng */
+.content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* Scrollbar custom */
+.content::-webkit-scrollbar {
+  width: 8px;
+}
+.content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+.content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

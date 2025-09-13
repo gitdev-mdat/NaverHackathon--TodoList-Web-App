@@ -1,6 +1,5 @@
-// src/components/Sidebar.tsx
-import { useState } from "react";
 import { LayoutDashboard, ListTodo, Calendar } from "lucide-react";
+import styles from "../styles/Sidebar.module.css";
 
 type Menu = "dashboard" | "tasks" | "calendar";
 
@@ -9,31 +8,28 @@ interface SidebarProps {
   active: Menu;
 }
 
-export default function Sidebar({ onSelect, active }: SidebarProps) {
-  const menuItems = [
-    {
-      id: "dashboard",
-      label: "Dashboard",
-      icon: <LayoutDashboard size={20} />,
-    },
-    { id: "tasks", label: "Task List", icon: <ListTodo size={20} /> },
-    { id: "calendar", label: "Calendar", icon: <Calendar size={20} /> },
-  ] as const;
+// Config menu items
+const menuItems = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "tasks", label: "Task List", icon: ListTodo },
+  { id: "calendar", label: "Calendar", icon: Calendar },
+] as const;
 
+export default function Sidebar({ onSelect, active }: SidebarProps) {
   return (
-    <div className="h-screen w-56 bg-gray-900 text-white flex flex-col p-4 space-y-4">
-      <h1 className="text-xl font-bold mb-6">⏰ StudentTime</h1>
-      <nav className="flex flex-col space-y-2">
+    <div className={styles.sidebar}>
+      <h1 className={styles.logo}>TodoNaver</h1>
+      <nav className={styles.nav}>
         {menuItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onSelect(item.id as Menu)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition ${
-              active === item.id ? "bg-blue-600" : "hover:bg-gray-700"
+            className={`${styles.navItem} ${
+              active === item.id ? styles.active : ""
             }`}
           >
-            {item.icon}
-            {item.label}
+            <item.icon size={20} />
+            <span>{item.label}</span>
           </button>
         ))}
       </nav>

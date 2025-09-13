@@ -2,8 +2,9 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "../pages/Home";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
-import TaskList from "../pages/TaskList";
+import TaskBoard from "../pages/TaskBoard";
 import ProtectedRoute from "./ProtectedRoute";
+import DashboardLayout from "../pages/DashboardLayout";
 
 export default function AppRoutes() {
   return (
@@ -18,7 +19,9 @@ export default function AppRoutes() {
         path="/todo"
         element={
           <ProtectedRoute>
-            <TaskList />
+            <DashboardLayout>
+              <TaskBoard />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />
