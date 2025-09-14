@@ -270,3 +270,26 @@
     font-size: 13px;
   }
 }
+.completedSection {
+  padding: 12px;
+  border-top: 1px solid #eef2f7;
+  background: #fff;
+  position: relative;
+}
+
+.completedToggle {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  border: 1px solid #e6e9ee;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.completedList {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+  max-height: 240px;
+  overflow: auto;
+}

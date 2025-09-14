@@ -287,3 +287,33 @@ kbd {
   color: #475569;
   font-size: 12px;
 }
+/* small helpers for title counter + warning */
+.titleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  gap: 8px;
+}
+
+.smallMeta {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.smallWarn {
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* error box */
+.error {
+  background: #fff1f2;
+  color: #991b1b;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  margin-top: 6px;
+}

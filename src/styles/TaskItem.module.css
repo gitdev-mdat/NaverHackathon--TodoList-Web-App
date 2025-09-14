@@ -123,3 +123,26 @@
   border: 1px solid #fca5a5;
   background: #fff5f5;
 }
+.titleWrap {
+  min-width: 0;
+}
+
+.cardTitle {
+  font-weight: 600;
+  font-size: 15px;
+  color: #111827;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.desc {
+  color: #6b7280;
+  font-size: 13px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -23,7 +23,8 @@ export default function TaskBoard() {
   });
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [showCompleted, setShowCompleted] = useState(false);
+  // default true so Completed section visible (you can change to false)
+  const [showCompleted, setShowCompleted] = useState(true);
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<
     "all" | "low" | "medium" | "high"
@@ -103,7 +104,7 @@ export default function TaskBoard() {
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm("Xóa task này?")) return;
+    if (!confirm("Delete this task?")) return;
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };
 
@@ -140,7 +141,9 @@ export default function TaskBoard() {
   const pastTasks = sorted.filter(
     (t) => getColumnFromDueDate(t.dueDate) === "past" && !t.completed
   );
-  const completedTasks = sorted.filter((t) => t.completed);
+
+  // show all completed tasks (ignore search/filter) so user can always review history
+  const completedTasks = tasks.filter((t) => t.completed);
 
   const counts = {
     today: todayTasks.length,
@@ -157,6 +160,7 @@ export default function TaskBoard() {
 
           <div className={styles.searchWrap}>
             <input
+              aria-label="Search tasks"
               placeholder="Search tasks..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -166,12 +170,14 @@ export default function TaskBoard() {
               className={styles.clear}
               onClick={() => setSearch("")}
               aria-label="Clear search"
+              title="Clear search"
             >
               ✕
             </button>
           </div>
 
           <select
+            aria-label="Filter by priority"
             className={styles.filter}
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value as any)}
@@ -198,6 +204,7 @@ export default function TaskBoard() {
           <button
             className={styles.globalAddBtn}
             onClick={() => setShowModal(true)}
+            aria-label="Add task"
           >
             + Task
           </button>
@@ -243,7 +250,7 @@ export default function TaskBoard() {
 
         <div className={styles.column}>
           <h3 className={styles.columnTitle}>
-            ⏳ Pass <span className={styles.colCount}>{counts.past}</span>
+            ⏳ Past <span className={styles.colCount}>{counts.past}</span>
           </h3>
           {pastTasks.length === 0 && (
             <p className={styles.empty}>No overdue tasks</p>
@@ -260,32 +267,19 @@ export default function TaskBoard() {
         </div>
       </div>
 
-      <div
-        ref={completedRef}
-        style={{
-          padding: 12,
-          borderTop: "1px solid #eef2f7",
-          background: "#fff",
-        }}
-      >
+      <div ref={completedRef} className={styles.completedSection}>
         <button
           onClick={() => setShowCompleted((s) => !s)}
-          style={{
-            padding: "8px 12px",
-            borderRadius: 8,
-            background: "#f1f5f9",
-            border: "1px solid #e6e9ee",
-            cursor: "pointer",
-            fontWeight: 700,
-          }}
+          className={styles.completedToggle}
+          aria-expanded={showCompleted}
         >
           {showCompleted ? "Hide" : "Show"} completed ({counts.completed})
         </button>
 
         {showCompleted && (
-          <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+          <div className={styles.completedList}>
             {completedTasks.length === 0 && (
-              <div className={styles.empty}>Không có task đã hoàn thành</div>
+              <div className={styles.empty}>No completed tasks</div>
             )}
             {completedTasks.map((t) => (
               <TaskItem
