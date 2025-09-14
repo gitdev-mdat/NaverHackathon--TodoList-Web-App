@@ -1,4 +1,3 @@
-// components/TaskItem.tsx
 import React from "react";
 import type { Task } from "../types/Task";
 import styles from "../styles/TaskItem.module.css";
@@ -8,39 +7,58 @@ interface Props {
   task: Task;
   onToggle?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onEdit?: (task: Task) => void;
+  onView?: (task: Task) => void;
 }
 
-export default function TaskItem({ task, onToggle, onDelete }: Props) {
+export default function TaskItem({
+  task,
+  onToggle,
+  onDelete,
+  onEdit,
+  onView,
+}: Props) {
   const due = new Date(task.dueDate);
   const isOverdue = !task.completed && due.getTime() < Date.now();
   const column = getColumnFromDueDate(task.dueDate);
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onView?.(task)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onView?.(task);
+      }}
       className={`${styles.card} ${task.completed ? styles.completed : ""} ${
         isOverdue ? styles.overdue : ""
       }`}
+      aria-label={task.title}
+      title={task.title}
     >
       <div className={styles.cardHeader}>
         <input
           type="checkbox"
           checked={task.completed}
-          onChange={() => onToggle?.(task.id)}
+          onChange={(e) => {
+            e.stopPropagation();
+            onToggle?.(task.id);
+          }}
           aria-label={`Toggle complete ${task.title}`}
         />
         <div className={styles.titleWrap}>
-          <h4 className={styles.cardTitle}>{task.title}</h4>
+          <h4 className={styles.cardTitle} title={task.title}>
+            {task.title}
+          </h4>
           {task.description && (
             <p className={styles.desc}>{task.description}</p>
           )}
         </div>
-        <button
-          className={styles.deleteBtn}
-          title="Delete"
-          onClick={() => onDelete?.(task.id)}
-        >
-          🗑
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span className={`${styles.priority} ${styles[task.priority]}`}>
+            {task.priority}
+          </span>
+        </div>
       </div>
 
       <div className={styles.cardMeta}>
@@ -48,12 +66,26 @@ export default function TaskItem({ task, onToggle, onDelete }: Props) {
           {formatLocalDateTime(task.dueDate)}
         </span>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span className={`${styles.priority} ${styles[task.priority]}`}>
-            {task.priority}
-          </span>
-          <span className={styles.columnTiny}>
-            {column === "today" ? "📅" : column === "future" ? "🔮" : "⏳"}
-          </span>
+          <button
+            className={styles.iconBtn}
+            title="Edit"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit?.(task);
+            }}
+          >
+            ✏️
+          </button>
+          <button
+            className={styles.deleteBtn}
+            title="Delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.(task.id);
+            }}
+          >
+            🗑
+          </button>
         </div>
       </div>
     </div>

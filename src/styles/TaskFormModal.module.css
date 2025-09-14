@@ -80,13 +80,6 @@
   color: #1f2937;
 }
 
-.labelInline {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
-
 .input,
 .textarea {
   padding: 10px 12px;
@@ -113,7 +106,7 @@
 /* row layout */
 .row {
   display: flex;
-  gap: 12px;
+  gap: 24px;
 }
 
 .rowSmall {

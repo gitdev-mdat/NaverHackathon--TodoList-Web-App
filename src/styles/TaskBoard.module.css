@@ -1,3 +1,4 @@
+/* styles/TaskBoard.module.css */
 :root {
   --bg: #ffffff;
   --muted: #64748b;
@@ -6,7 +7,19 @@
   --glass: rgba(255, 255, 255, 0.6);
 }
 
-/* header wrapper */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f3f4f6;
+  font-family: "Inter", sans-serif;
+  color: #111827;
+  overflow: hidden;
+  --header-height: 72px;
+  --completed-height: 0px;
+  --bottom-gap: 40px;
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -40,15 +53,6 @@
   letter-spacing: -0.2px;
 }
 
-.header .sub {
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 600;
-  background: #f1f5f9;
-  padding: 6px 8px;
-  border-radius: 999px;
-}
-
 .searchWrap {
   position: relative;
   display: inline-flex;
@@ -57,8 +61,6 @@
   padding: 6px 8px;
   border-radius: 12px;
   border: 1px solid transparent;
-  transition: box-shadow 0.18s ease, border-color 0.18s ease,
-    transform 0.12s ease;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
 }
 
@@ -66,13 +68,6 @@
   border-color: rgba(37, 99, 235, 0.18);
   box-shadow: 0 8px 26px rgba(37, 99, 235, 0.08);
   transform: translateY(-1px);
-}
-
-.searchIcon {
-  margin-left: 6px;
-  margin-right: 6px;
-  font-size: 14px;
-  color: #94a3b8;
 }
 
 .search {
@@ -97,25 +92,83 @@
   font-size: 12px;
 }
 
+/* nicer filter + sort controls */
 .filter,
 .sortBtn {
-  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
   border-radius: 10px;
   border: 1px solid #e6e9ee;
-  background: white;
+  background: #ffffff;
   font-size: 13px;
+  color: #0f172a;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: 0 1px 0 rgba(2, 6, 23, 0.03);
+  transition: transform 0.12s ease, box-shadow 0.16s ease,
+    border-color 0.12s ease;
+}
+
+/* select styled as a pill with custom arrow */
+.filter {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 40px; /* space for arrow */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  padding-left: 12px;
+}
+
+/* hide IE default arrow */
+.filter::-ms-expand {
+  display: none;
+}
+
+/* sort button has subtle icon area — you can place an <span class="arrow">↑</span> inside for animation */
+.sortBtn {
+  padding-left: 12px;
+  padding-right: 12px;
+  font-weight: 600;
+}
+
+/* hover / focus */
+.filter:hover,
+.sortBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.06);
+  border-color: rgba(37, 99, 235, 0.12);
 }
 
 .filter:focus,
-.sortBtn:focus {
+.sortBtn:focus,
+.filter:focus-visible,
+.sortBtn:focus-visible {
   outline: none;
-  box-shadow: 0 8px 20px rgba(2, 6, 23, 0.06);
-  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.28);
 }
 
-/* global add task button - elevated CTA */
+/* smaller on mobile */
+@media (max-width: 520px) {
+  .filter,
+  .sortBtn {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}
+
+/* optional: animate arrow inside sortBtn when toggled (add/remove .rotated on element) */
+.sortBtn .arrow {
+  display: inline-block;
+  transition: transform 0.18s ease;
+}
+.sortBtn .arrow.rotated {
+  transform: rotate(180deg);
+}
+
 .globalAddBtn {
   padding: 8px 12px;
   border: none;
@@ -126,18 +179,8 @@
   border-radius: 10px;
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(37, 99, 235, 0.18);
-  transition: transform 0.14s ease, box-shadow 0.14s ease;
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
 }
 
-.globalAddBtn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 36px rgba(37, 99, 235, 0.2);
-}
-
-/* small count badge */
 .countBadge {
   background: linear-gradient(180deg, #eef2ff 0%, #e6f0ff 100%);
   color: #1e3a8a;
@@ -151,80 +194,14 @@
   box-shadow: 0 6px 18px rgba(37, 99, 235, 0.06);
 }
 
-/* right side grouping */
-.header .right {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-/* avatar placeholder (optional) */
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #f3f4f6, #e6eefc);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: #0f172a;
-  border: 1px solid rgba(2, 6, 23, 0.04);
-  cursor: pointer;
-}
-
-/* responsive: collapse search on small screens */
-@media (max-width: 880px) {
-  .search {
-    width: 140px;
-  }
-  .title {
-    font-size: 16px;
-  }
-  .filter,
-  .sortBtn {
-    display: none;
-  } /* hide some controls */
-}
-
-/* mobile: compact header stack */
-@media (max-width: 520px) {
-  .header {
-    padding: 10px 12px;
-    gap: 8px;
-  }
-  .left {
-    gap: 8px;
-  }
-  .search {
-    display: none;
-  } /* prefer icon-driven search */
-  .globalAddBtn {
-    padding: 8px 10px;
-    font-size: 13px;
-  }
-}
-
-/* count badge */
-.countBadge {
-  background: #eef2ff;
-  color: #1e3a8a;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-weight: 700;
-}
-
-/* Board grid */
 .board {
-  flex: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   padding: 20px;
-  overflow: hidden;
+  overflow: visible;
 }
 
-/* Column */
 .column {
   background: white;
   border-radius: 12px;
@@ -234,7 +211,10 @@
   gap: 12px;
   box-shadow: 0 4px 12px rgba(2, 6, 23, 0.04);
   overflow-y: auto;
-  max-height: calc(100vh - 110px);
+  max-height: calc(
+    100vh - var(--header-height, 72px) - var(--completed-height, 0px) -
+      var(--bottom-gap, 40px)
+  );
 }
 
 .columnTitle {
@@ -254,7 +234,6 @@
   margin-left: 8px;
 }
 
-/* Empty state */
 .empty {
   text-align: center;
   color: #9ca3af;
@@ -263,4 +242,31 @@
   background: #f9fafb;
   border-radius: 10px;
   border: 1px dashed #d1d5db;
+}
+
+@media (max-width: 880px) {
+  .search {
+    width: 140px;
+  }
+  .title {
+    font-size: 16px;
+  }
+  .filter,
+  .sortBtn {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .search {
+    display: none;
+  }
+  .globalAddBtn {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
 }

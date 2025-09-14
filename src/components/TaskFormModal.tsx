@@ -9,26 +9,35 @@ import {
 } from "../utils/date";
 
 interface Props {
-  onAdd: (task: Omit<Task, "id">) => void;
+  onAdd?: (task: Omit<Task, "id">) => void;
+  onUpdate?: (task: Task) => void;
   onClose: () => void;
-  defaultColumn?: "today" | "future" | "past";
+  initialTask?: Task | null;
 }
+
+const MAX_TITLE = 80;
 
 export default function TaskFormModal({
   onAdd,
+  onUpdate,
   onClose,
-  defaultColumn = "today",
+  initialTask = null,
 }: Props) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-
+  const [title, setTitle] = useState(initialTask?.title ?? "");
+  const [description, setDescription] = useState(
+    initialTask?.description ?? ""
+  );
   const [dueDateTime, setDueDateTime] = useState<string>(() => {
+    if (initialTask?.dueDate)
+      return toLocalInputValue(new Date(initialTask.dueDate));
     const d = new Date();
     d.setMinutes(0, 0, 0);
     d.setHours(d.getHours() + 1);
     return toLocalInputValue(d);
   });
-  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [priority, setPriority] = useState<"low" | "medium" | "high">(
+    initialTask?.priority ?? "medium"
+  );
   const [error, setError] = useState<string | null>(null);
 
   const titleRef = useRef<HTMLInputElement | null>(null);
@@ -44,19 +53,17 @@ export default function TaskFormModal({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [onClose]);
 
-  // preview column based on parsed local Date
   const previewColumn = (() => {
     try {
       const parsed = parseLocalInputToDate(dueDateTime);
       return getColumnFromDueDate(parsed);
     } catch {
-      return defaultColumn;
+      return "today";
     }
   })();
 
-  // preview formatted date
   const previewFormatted = (() => {
     try {
       const parsed = parseLocalInputToDate(dueDateTime);
@@ -71,27 +78,56 @@ export default function TaskFormModal({
     setError(null);
 
     if (!title.trim()) {
-      setError("Tiêu đề không được để trống.");
+      setError("Title cannot be empty.");
+      titleRef.current?.focus();
+      return;
+    }
+    if (title.trim().length > MAX_TITLE) {
+      setError(`Title is too long (max ${MAX_TITLE} characters).`);
       titleRef.current?.focus();
       return;
     }
     if (!dueDateTime) {
-      setError("Vui lòng chọn ngày & thời gian.");
+      setError("Please choose date & time.");
       return;
     }
+
     const parsedLocalDate = parseLocalInputToDate(dueDateTime);
     const dueIso = parsedLocalDate.toISOString();
 
-    onAdd({
-      title: title.trim(),
-      description: description.trim(),
-      dueDate: dueIso,
-      priority,
-      createdAt: new Date().toISOString(),
-      completed: false,
-    } as Omit<Task, "id">);
+    if (initialTask && onUpdate) {
+      const updated: Task = {
+        ...initialTask,
+        title: title.trim(),
+        description: description.trim(),
+        dueDate: dueIso,
+        priority,
+        updatedAt: new Date().toISOString(),
+      };
+      onUpdate(updated);
+    } else if (onAdd) {
+      onAdd({
+        title: title.trim(),
+        description: description.trim(),
+        dueDate: dueIso,
+        priority,
+        createdAt: new Date().toISOString(),
+        completed: false,
+      });
+    }
 
     onClose();
+  };
+
+  const onPasteTitle = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const paste = e.clipboardData.getData("text");
+    const allowed = MAX_TITLE - title.length;
+    if (paste.length > allowed) {
+      e.preventDefault();
+      const trimmed = paste.slice(0, allowed);
+      const newVal = (title + trimmed).slice(0, MAX_TITLE);
+      setTitle(newVal);
+    }
   };
 
   return (
@@ -104,16 +140,16 @@ export default function TaskFormModal({
       <div className={styles.modal}>
         <header className={styles.modalHeader}>
           <h3 id="add-task-title" className={styles.title}>
-            Thêm task
+            {initialTask ? "Edit task" : "Add task"}
           </h3>
 
           <div className={styles.badgeWrap}>
             <span className={`${styles.columnBadge} ${styles[previewColumn]}`}>
               {previewColumn === "today"
-                ? "📅 Hôm nay"
+                ? "Today"
                 : previewColumn === "future"
-                ? "🔮 Tương lai"
-                : "⏳ Quá khứ"}
+                ? "Future"
+                : "Past"}
             </span>
           </div>
 
@@ -128,21 +164,36 @@ export default function TaskFormModal({
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <label className={styles.label}>
-            Tiêu đề <span className={styles.required}>*</span>
+            Title
             <input
               ref={titleRef}
               type="text"
-              placeholder="Viết tiêu đề ngắn gọn..."
+              placeholder="Write a short title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => setTitle(e.target.value.slice(0, MAX_TITLE))}
+              onPaste={onPasteTitle}
               className={styles.input}
+              maxLength={MAX_TITLE}
+              aria-describedby="title-help"
             />
+            <div className={styles.titleRow}>
+              <div id="title-help" className={styles.smallMeta}>
+                <small>
+                  {title.length}/{MAX_TITLE}
+                </small>
+              </div>
+              {title.length >= MAX_TITLE - 10 && (
+                <div className={styles.smallWarn}>
+                  <small>Almost at limit</small>
+                </div>
+              )}
+            </div>
           </label>
 
           <label className={styles.label}>
-            Mô tả
+            Description
             <textarea
-              placeholder="Mô tả chi tiết (tùy chọn)"
+              placeholder="Describe your task (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className={styles.textarea}
@@ -151,8 +202,8 @@ export default function TaskFormModal({
           </label>
 
           <div className={styles.row}>
-            <label className={styles.labelInline}>
-              Ngày & giờ
+            <label className={styles.label}>
+              Date & Time
               <input
                 type="datetime-local"
                 value={dueDateTime}
@@ -160,12 +211,12 @@ export default function TaskFormModal({
                 className={styles.input}
               />
               <div className={styles.smallMeta}>
-                <small>Hiển thị tương đương: {previewFormatted}</small>
+                <small>Preview: {previewFormatted}</small>
               </div>
             </label>
 
-            <label className={styles.labelInline}>
-              Ưu tiên
+            <label className={styles.label}>
+              Priority
               <div className={styles.segment}>
                 <button
                   type="button"
@@ -202,22 +253,21 @@ export default function TaskFormModal({
 
           <div className={styles.actions}>
             <button type="submit" className={styles.saveBtn}>
-              Lưu (Enter)
+              {initialTask ? "Update" : "Save"}
             </button>
             <button
               type="button"
               onClick={onClose}
               className={styles.cancelBtn}
             >
-              Hủy (Esc)
+              Close (Esc)
             </button>
           </div>
         </form>
 
         <footer className={styles.footer}>
           <small>
-            Tip: Nhấn <kbd>Esc</kbd> để đóng, <kbd>Ctrl/⌘ + S</kbd> để lưu
-            nhanh. Hệ thống tự phân cột dựa trên ngày bạn chọn.
+            Tip: Press <kbd>Esc</kbd> to close, <kbd>Ctrl/⌘ + S</kbd> to save.
           </small>
         </footer>
       </div>
