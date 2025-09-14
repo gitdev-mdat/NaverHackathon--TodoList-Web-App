@@ -7,6 +7,7 @@ import TaskBoard from "../pages/TaskBoard";
 import ProtectedRoute from "./ProtectedRoute";
 import DashboardLayout from "../pages/DashboardLayout";
 import CalendarPage from "../pages/CalendarPage";
+import DashboardPage from "../pages/DashboardPage";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -26,6 +27,7 @@ export default function AppRoutes() {
         {/* <Route path="dashboard" element={<DashboardHome />} /> */}
         <Route path="tasks" element={<TaskBoard />} />
         <Route path="calendar" element={<CalendarPage />} />
+        <Route path="dashboard" element={<DashboardPage />} />
         {/* <Route path="calendar" element={<CalendarPage />} /> */}
       </Route>
 
