@@ -8,6 +8,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import DashboardLayout from "../pages/DashboardLayout";
 import CalendarPage from "../pages/CalendarPage";
 import DashboardPage from "../pages/DashboardPage";
+import AIAssistantPage from "../pages/AIAssistantPage";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -28,6 +29,7 @@ export default function AppRoutes() {
         <Route path="tasks" element={<TaskBoard />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="ai" element={<AIAssistantPage />} />
         {/* <Route path="calendar" element={<CalendarPage />} /> */}
       </Route>
 

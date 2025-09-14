@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, ListTodo, Calendar } from "lucide-react";
 import styles from "../styles/Sidebar.module.css";
-
+import { Cpu } from "lucide-react";
 type MenuItem = {
   to: string;
   label: string;
@@ -12,6 +12,7 @@ const MENU: MenuItem[] = [
   { to: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { to: "tasks", label: "Task List", Icon: ListTodo },
   { to: "calendar", label: "Calendar", Icon: Calendar },
+  { to: "ai", label: "AI Assistant", Icon: Cpu },
 ];
 
 export default function Sidebar() {
