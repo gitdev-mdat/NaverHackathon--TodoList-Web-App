@@ -1,4 +1,3 @@
-// src/hooks/useTasks.ts
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Task, Priority } from "../types/Task";
 
@@ -7,12 +6,14 @@ const STORAGE_KEY = "tasks_v1";
 type NewTask = Omit<Task, "id">;
 
 function migrateRawToTask(o: any): Task {
+  const due = o?.dueDate ?? new Date().toISOString();
+  const end = o?.endDate ?? due;
   return {
-    id: o?.id ?? String(Date.now()),
+    id: String(o?.id ?? Date.now()),
     title: String(o?.title ?? ""),
     description: o?.description ?? undefined,
-    dueDate: o?.dueDate ?? new Date().toISOString(),
-    endDate: o?.endDate ?? undefined,
+    dueDate: String(due),
+    endDate: end ? String(end) : undefined,
     allDay: typeof o?.allDay === "boolean" ? o.allDay : false,
     completed: !!o?.completed,
     createdAt: o?.createdAt ?? new Date().toISOString(),
@@ -38,27 +39,39 @@ export default function useTasks() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
     } catch {
-      // ignore storage errors
+      // ignore
     }
   }, [tasks]);
 
   const addTask = useCallback((payload: NewTask) => {
+    const now = new Date().toISOString();
+    const due = payload.dueDate ?? now;
     const newTask: Task = {
       ...payload,
       id: String(Date.now()),
-      updatedAt: new Date().toISOString(),
+      dueDate: String(due),
+      endDate: payload.endDate ?? String(due),
+      allDay: typeof payload.allDay === "boolean" ? payload.allDay : false,
+      completed:
+        typeof payload.completed === "boolean" ? payload.completed : false,
+      createdAt: payload.createdAt ?? now,
+      updatedAt: now,
+      priority: (payload.priority as Priority) ?? "medium",
     };
     setTasks((prev) => [newTask, ...prev]);
     return newTask;
   }, []);
 
   const updateTask = useCallback((updated: Task) => {
+    const normalized: Task = {
+      ...updated,
+      dueDate: String(updated.dueDate),
+      endDate: updated.endDate ?? String(updated.dueDate),
+      allDay: typeof updated.allDay === "boolean" ? updated.allDay : false,
+      updatedAt: new Date().toISOString(),
+    };
     setTasks((prev) =>
-      prev.map((t) =>
-        t.id === updated.id
-          ? { ...updated, updatedAt: new Date().toISOString() }
-          : t
-      )
+      prev.map((t) => (t.id === normalized.id ? normalized : t))
     );
   }, []);
 
@@ -81,7 +94,11 @@ export default function useTasks() {
   }, []);
 
   const replaceAll = useCallback((next: Task[]) => {
-    setTasks(next.map(migrateRawToTask));
+    try {
+      setTasks(next.map(migrateRawToTask));
+    } catch {
+      // ignore invalid payload
+    }
   }, []);
 
   const getById = useCallback(

@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import type { Task } from "../types/Task";
 import styles from "../styles/TaskFormModal.module.css";
@@ -5,6 +6,7 @@ import {
   getColumnFromDueDate,
   formatLocalDateTime,
   toLocalInputValue,
+  normalizeAllDayRange,
   parseLocalInputToDate,
 } from "../utils/date";
 
@@ -17,6 +19,15 @@ interface Props {
 
 const MAX_TITLE = 80;
 
+function dateOnlyFromISO(iso?: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`; // yyyy-mm-dd
+}
+
 export default function TaskFormModal({
   onAdd,
   onUpdate,
@@ -27,14 +38,29 @@ export default function TaskFormModal({
   const [description, setDescription] = useState(
     initialTask?.description ?? ""
   );
+  const [allDay, setAllDay] = useState<boolean>(!!initialTask?.allDay);
+
   const [dueDateTime, setDueDateTime] = useState<string>(() => {
-    if (initialTask?.dueDate)
-      return toLocalInputValue(new Date(initialTask.dueDate));
+    if (initialTask?.dueDate) {
+      return initialTask?.allDay
+        ? dateOnlyFromISO(initialTask.dueDate)
+        : toLocalInputValue(new Date(initialTask.dueDate));
+    }
     const d = new Date();
     d.setMinutes(0, 0, 0);
     d.setHours(d.getHours() + 1);
     return toLocalInputValue(d);
   });
+
+  const [endDateTime, setEndDateTime] = useState<string>(() => {
+    if (initialTask?.endDate) {
+      return initialTask?.allDay
+        ? dateOnlyFromISO(initialTask.endDate)
+        : toLocalInputValue(new Date(initialTask.endDate));
+    }
+    return "";
+  });
+
   const [priority, setPriority] = useState<"low" | "medium" | "high">(
     initialTask?.priority ?? "medium"
   );
@@ -55,9 +81,47 @@ export default function TaskFormModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // fix: when switching allDay we convert the stored value so preview logic works
+  const handleAllDayToggle = (checked: boolean) => {
+    if (checked) {
+      // convert any datetime-local -> date-only yyyy-mm-dd
+      if (dueDateTime.includes("T")) {
+        try {
+          const d = parseLocalInputToDate(dueDateTime);
+          setDueDateTime(dateOnlyFromISO(d.toISOString()));
+        } catch {
+          // fallback: keep original if parse fails
+        }
+      }
+      if (endDateTime.includes("T")) {
+        try {
+          const e = parseLocalInputToDate(endDateTime);
+          setEndDateTime(dateOnlyFromISO(e.toISOString()));
+        } catch {}
+      }
+    } else {
+      // turning off allDay: if we have date-only, convert to datetime-local with same day at next hour
+      if (!dueDateTime.includes("T") && dueDateTime) {
+        const d = new Date(dueDateTime + "T09:00"); // default 09:00 local
+        setDueDateTime(toLocalInputValue(d));
+      }
+      if (!endDateTime.includes("T") && endDateTime) {
+        const e = new Date(endDateTime + "T17:00"); // default 17:00 local
+        setEndDateTime(toLocalInputValue(e));
+      }
+    }
+    setAllDay(checked);
+    setError(null);
+  };
+
   const previewColumn = (() => {
     try {
-      const parsed = parseLocalInputToDate(dueDateTime);
+      const parsed = allDay
+        ? // if dueDateTime includes T, parse it; else use date-only at midnight local
+          dueDateTime.includes("T")
+          ? parseLocalInputToDate(dueDateTime)
+          : new Date(`${dueDateTime}T00:00`)
+        : parseLocalInputToDate(dueDateTime);
       return getColumnFromDueDate(parsed);
     } catch {
       return "today";
@@ -66,8 +130,24 @@ export default function TaskFormModal({
 
   const previewFormatted = (() => {
     try {
-      const parsed = parseLocalInputToDate(dueDateTime);
-      return formatLocalDateTime(parsed.toISOString());
+      const start = allDay
+        ? dueDateTime.includes("T")
+          ? parseLocalInputToDate(dueDateTime)
+          : new Date(`${dueDateTime}T00:00`)
+        : parseLocalInputToDate(dueDateTime);
+
+      const end = endDateTime
+        ? allDay
+          ? endDateTime.includes("T")
+            ? parseLocalInputToDate(endDateTime)
+            : new Date(`${endDateTime}T00:00`)
+          : parseLocalInputToDate(endDateTime)
+        : undefined;
+
+      if (!end) return formatLocalDateTime(start.toISOString());
+      return `${formatLocalDateTime(
+        start.toISOString()
+      )} → ${formatLocalDateTime(end.toISOString())}`;
     } catch {
       return "";
     }
@@ -83,24 +163,67 @@ export default function TaskFormModal({
       return;
     }
     if (title.trim().length > MAX_TITLE) {
-      setError(`Title is too long (max ${MAX_TITLE} characters).`);
+      setError(`Title too long (max ${MAX_TITLE}).`);
       titleRef.current?.focus();
       return;
     }
     if (!dueDateTime) {
-      setError("Please choose date & time.");
+      setError("Please pick start date/time.");
       return;
     }
 
-    const parsedLocalDate = parseLocalInputToDate(dueDateTime);
-    const dueIso = parsedLocalDate.toISOString();
+    let startISO: string;
+    let endISO: string | undefined;
+
+    try {
+      if (allDay) {
+        // dueDateTime and endDateTime are yyyy-mm-dd or maybe include T
+        const s = dueDateTime.includes("T")
+          ? parseLocalInputToDate(dueDateTime)
+          : new Date(dueDateTime + "T00:00");
+        if (!isFinite(s.getTime())) throw new Error("invalid start date");
+        startISO = s.toISOString();
+
+        if (endDateTime) {
+          const e = endDateTime.includes("T")
+            ? parseLocalInputToDate(endDateTime)
+            : new Date(endDateTime + "T00:00");
+          if (!isFinite(e.getTime())) throw new Error("invalid end date");
+          // endExclusive = next day midnight
+          const endExclusive = new Date(e);
+          endExclusive.setDate(endExclusive.getDate() + 1);
+          endISO = endExclusive.toISOString();
+        } else {
+          const { endISO: n } = normalizeAllDayRange(new Date(startISO));
+          endISO = n;
+        }
+      } else {
+        const s = parseLocalInputToDate(dueDateTime);
+        if (!isFinite(s.getTime())) throw new Error("invalid start");
+        startISO = s.toISOString();
+        if (endDateTime) {
+          const e = parseLocalInputToDate(endDateTime);
+          if (!isFinite(e.getTime())) throw new Error("invalid end");
+          if (e.getTime() < s.getTime()) {
+            setError("End must be after start.");
+            return;
+          }
+          endISO = e.toISOString();
+        }
+      }
+    } catch {
+      setError("Invalid date/time input.");
+      return;
+    }
 
     if (initialTask && onUpdate) {
       const updated: Task = {
         ...initialTask,
         title: title.trim(),
         description: description.trim(),
-        dueDate: dueIso,
+        dueDate: startISO,
+        endDate: endISO,
+        allDay,
         priority,
         updatedAt: new Date().toISOString(),
       };
@@ -109,7 +232,9 @@ export default function TaskFormModal({
       onAdd({
         title: title.trim(),
         description: description.trim(),
-        dueDate: dueIso,
+        dueDate: startISO,
+        endDate: endISO,
+        allDay,
         priority,
         createdAt: new Date().toISOString(),
         completed: false,
@@ -117,17 +242,6 @@ export default function TaskFormModal({
     }
 
     onClose();
-  };
-
-  const onPasteTitle = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const paste = e.clipboardData.getData("text");
-    const allowed = MAX_TITLE - title.length;
-    if (paste.length > allowed) {
-      e.preventDefault();
-      const trimmed = paste.slice(0, allowed);
-      const newVal = (title + trimmed).slice(0, MAX_TITLE);
-      setTitle(newVal);
-    }
   };
 
   return (
@@ -171,22 +285,15 @@ export default function TaskFormModal({
               placeholder="Write a short title"
               value={title}
               onChange={(e) => setTitle(e.target.value.slice(0, MAX_TITLE))}
-              onPaste={onPasteTitle}
               className={styles.input}
               maxLength={MAX_TITLE}
-              aria-describedby="title-help"
             />
             <div className={styles.titleRow}>
-              <div id="title-help" className={styles.smallMeta}>
+              <div className={styles.smallMeta}>
                 <small>
                   {title.length}/{MAX_TITLE}
                 </small>
               </div>
-              {title.length >= MAX_TITLE - 10 && (
-                <div className={styles.smallWarn}>
-                  <small>Almost at limit</small>
-                </div>
-              )}
             </div>
           </label>
 
@@ -201,50 +308,127 @@ export default function TaskFormModal({
             />
           </label>
 
-          <div className={styles.row}>
-            <label className={styles.label}>
-              Date & Time
+          {/* CONTROLS ROW: all-day toggle (left) + priority (right) */}
+          <div
+            className={styles.row}
+            style={{ alignItems: "center", gap: 16, marginTop: 6 }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
-                type="datetime-local"
-                value={dueDateTime}
-                onChange={(e) => setDueDateTime(e.target.value)}
-                className={styles.input}
+                id="allDay"
+                type="checkbox"
+                checked={allDay}
+                onChange={(e) => handleAllDayToggle(e.target.checked)}
               />
+              <label
+                htmlFor="allDay"
+                style={{ fontSize: 13, userSelect: "none" }}
+              >
+                All day
+              </label>
+            </div>
+
+            <div style={{ marginLeft: "auto" }}>
+              <label style={{ display: "block" }}>
+                Priority
+                <div className={styles.segment} style={{ marginTop: 6 }}>
+                  <button
+                    type="button"
+                    className={`${styles.segmentBtn} ${
+                      priority === "low" ? styles.active : ""
+                    }`}
+                    onClick={() => setPriority("low")}
+                  >
+                    Low
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.segmentBtn} ${
+                      priority === "medium" ? styles.active : ""
+                    }`}
+                    onClick={() => setPriority("medium")}
+                  >
+                    Medium
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.segmentBtn} ${
+                      priority === "high" ? styles.active : ""
+                    }`}
+                    onClick={() => setPriority("high")}
+                  >
+                    High
+                  </button>
+                </div>
+              </label>
+            </div>
+          </div>
+          {/* START ROW: start input (full width) */}
+          <div className={styles.row}>
+            <label className={styles.label} style={{ flex: 1 }}>
+              {allDay ? "Date (all-day)" : "Start (date & time)"}
+              {allDay ? (
+                <input
+                  type="date"
+                  value={dueDateTime}
+                  onChange={(e) => setDueDateTime(e.target.value)}
+                  className={styles.input}
+                />
+              ) : (
+                <input
+                  type="datetime-local"
+                  value={dueDateTime}
+                  onChange={(e) => setDueDateTime(e.target.value)}
+                  className={styles.input}
+                />
+              )}
               <div className={styles.smallMeta}>
                 <small>Preview: {previewFormatted}</small>
               </div>
             </label>
+          </div>
 
-            <label className={styles.label}>
-              Priority
-              <div className={styles.segment}>
-                <button
-                  type="button"
-                  className={`${styles.segmentBtn} ${
-                    priority === "low" ? styles.active : ""
-                  }`}
-                  onClick={() => setPriority("low")}
-                >
-                  Low
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.segmentBtn} ${
-                    priority === "medium" ? styles.active : ""
-                  }`}
-                  onClick={() => setPriority("medium")}
-                >
-                  Medium
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.segmentBtn} ${
-                    priority === "high" ? styles.active : ""
-                  }`}
-                  onClick={() => setPriority("high")}
-                >
-                  High
-                </button>
+          {/* END ROW */}
+          <div className={styles.row} style={{ marginTop: 6 }}>
+            <label className={styles.label} style={{ flex: 1 }}>
+              {allDay ? "End date (optional)" : "End (optional)"}
+              {allDay ? (
+                <input
+                  type="date"
+                  value={endDateTime}
+                  onChange={(e) => setEndDateTime(e.target.value)}
+                  className={styles.input}
+                />
+              ) : (
+                <input
+                  type="datetime-local"
+                  value={endDateTime}
+                  onChange={(e) => setEndDateTime(e.target.value)}
+                  className={styles.input}
+                />
+              )}
+              <div className={styles.smallMeta}>
+                <small>
+                  {endDateTime
+                    ? `Preview end: ${
+                        allDay
+                          ? formatLocalDateTime(
+                              new Date(`${endDateTime}T00:00`).toISOString()
+                            )
+                          : (() => {
+                              try {
+                                return formatLocalDateTime(
+                                  parseLocalInputToDate(
+                                    endDateTime
+                                  ).toISOString()
+                                );
+                              } catch {
+                                return "";
+                              }
+                            })()
+                      }`
+                    : "No end set"}
+                </small>
               </div>
             </label>
           </div>

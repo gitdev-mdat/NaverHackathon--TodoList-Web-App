@@ -1,29 +1,26 @@
-// components/TaskBoard.tsx
-import { useEffect, useMemo, useState, useRef } from "react";
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import TaskItem from "../components/TaskItem";
 import TaskFormModal from "../components/TaskFormModal";
+import TaskDetailModal from "../components/TaskDetailModal";
+import useTasks from "../hooks/useTasks";
 import type { Task } from "../types/Task";
 import styles from "../styles/TaskBoard.module.css";
 import { getColumnFromDueDate } from "../utils/date";
-
-const STORAGE_KEY = "tasks_v1";
 
 export default function TaskBoard() {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLDivElement | null>(null);
   const completedRef = useRef<HTMLDivElement | null>(null);
 
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    try {
-      const s = localStorage.getItem(STORAGE_KEY);
-      return s ? (JSON.parse(s) as Task[]) : [];
-    } catch {
-      return [];
-    }
-  });
+  // use centralized hook
+  const { tasks, addTask, updateTask, deleteTask, toggleComplete, counts } =
+    useTasks();
+
+  // local UI state
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  // default true so Completed section visible (you can change to false)
+  const [viewTask, setViewTask] = useState<Task | null>(null);
   const [showCompleted, setShowCompleted] = useState(true);
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<
@@ -31,12 +28,7 @@ export default function TaskBoard() {
   >("all");
   const [sortAsc, setSortAsc] = useState(true);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-    } catch {}
-  }, [tasks]);
-
+  // calculate layout CSS vars (for column heights)
   const updateHeights = () => {
     const wrapperEl = wrapperRef.current;
     if (!wrapperEl) return;
@@ -60,54 +52,35 @@ export default function TaskBoard() {
     const onResize = () => updateHeights();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => updateHeights());
     return () => cancelAnimationFrame(id);
-  }, [showCompleted, tasks]);
+  }, [showCompleted, tasks, viewTask, editingTask]);
 
+  // CRUD handlers mapped to hook
   const handleAddTask = (task: Omit<Task, "id">) => {
-    const newTask: Task = {
-      ...task,
-      id: String(Date.now()),
-      completed: false,
-      updatedAt: new Date().toISOString(),
-    };
-    setTasks((prev) => [newTask, ...prev]);
+    addTask(task);
     setShowModal(false);
   };
 
   const handleUpdateTask = (updated: Task) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === updated.id
-          ? { ...updated, updatedAt: new Date().toISOString() }
-          : t
-      )
-    );
+    updateTask(updated);
     setEditingTask(null);
   };
 
   const handleToggleComplete = (id: string) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              completed: !t.completed,
-              updatedAt: new Date().toISOString(),
-            }
-          : t
-      )
-    );
+    toggleComplete(id);
   };
 
   const handleDelete = (id: string) => {
     if (!confirm("Delete this task?")) return;
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    deleteTask(id);
   };
 
+  // filter / search / sort (UI-level)
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
       if (priorityFilter !== "all" && t.priority !== priorityFilter)
@@ -132,6 +105,7 @@ export default function TaskBoard() {
     });
   }, [filtered, sortAsc]);
 
+  // column grouping
   const todayTasks = sorted.filter(
     (t) => getColumnFromDueDate(t.dueDate) === "today" && !t.completed
   );
@@ -142,15 +116,8 @@ export default function TaskBoard() {
     (t) => getColumnFromDueDate(t.dueDate) === "past" && !t.completed
   );
 
-  // show all completed tasks (ignore search/filter) so user can always review history
+  // completed tasks (show full history)
   const completedTasks = tasks.filter((t) => t.completed);
-
-  const counts = {
-    today: todayTasks.length,
-    future: futureTasks.length,
-    past: pastTasks.length,
-    completed: completedTasks.length,
-  };
 
   return (
     <div ref={wrapperRef} className={styles.wrapper}>
@@ -199,11 +166,14 @@ export default function TaskBoard() {
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <div className={styles.countBadge}>
-            Active: {counts.today + counts.future + counts.past}
+            Active: {counts.total - counts.completed}
           </div>
           <button
             className={styles.globalAddBtn}
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setEditingTask(null);
+              setShowModal(true);
+            }}
             aria-label="Add task"
           >
             + Task
@@ -214,11 +184,10 @@ export default function TaskBoard() {
       <div className={styles.board}>
         <div className={styles.column}>
           <h3 className={styles.columnTitle}>
-            📅 Today <span className={styles.colCount}>{counts.today}</span>
+            📅 Today{" "}
+            <span className={styles.colCount}>{todayTasks.length}</span>
           </h3>
-          {todayTasks.length === 0 && (
-            <p className={styles.empty}>No tasks for today</p>
-          )}
+          {todayTasks.length === 0 && <p className={styles.empty}>No tasks</p>}
           {todayTasks.map((task) => (
             <TaskItem
               key={task.id}
@@ -226,13 +195,15 @@ export default function TaskBoard() {
               onToggle={handleToggleComplete}
               onDelete={handleDelete}
               onEdit={(t) => setEditingTask(t)}
+              onView={(t) => setViewTask(t)}
             />
           ))}
         </div>
 
         <div className={styles.column}>
           <h3 className={styles.columnTitle}>
-            🔮 Future <span className={styles.colCount}>{counts.future}</span>
+            🔮 Future{" "}
+            <span className={styles.colCount}>{futureTasks.length}</span>
           </h3>
           {futureTasks.length === 0 && (
             <p className={styles.empty}>No upcoming tasks.</p>
@@ -244,13 +215,14 @@ export default function TaskBoard() {
               onToggle={handleToggleComplete}
               onDelete={handleDelete}
               onEdit={(t) => setEditingTask(t)}
+              onView={(t) => setViewTask(t)}
             />
           ))}
         </div>
 
         <div className={styles.column}>
           <h3 className={styles.columnTitle}>
-            ⏳ Past <span className={styles.colCount}>{counts.past}</span>
+            ⏳ Past <span className={styles.colCount}>{pastTasks.length}</span>
           </h3>
           {pastTasks.length === 0 && (
             <p className={styles.empty}>No overdue tasks</p>
@@ -262,6 +234,7 @@ export default function TaskBoard() {
               onToggle={handleToggleComplete}
               onDelete={handleDelete}
               onEdit={(t) => setEditingTask(t)}
+              onView={(t) => setViewTask(t)}
             />
           ))}
         </div>
@@ -273,7 +246,7 @@ export default function TaskBoard() {
           className={styles.completedToggle}
           aria-expanded={showCompleted}
         >
-          {showCompleted ? "Hide" : "Show"} completed ({counts.completed})
+          {showCompleted ? "Hide" : "Show"} completed ({completedTasks.length})
         </button>
 
         {showCompleted && (
@@ -288,6 +261,10 @@ export default function TaskBoard() {
                 onToggle={handleToggleComplete}
                 onDelete={handleDelete}
                 onEdit={(tt) => setEditingTask(tt)}
+                onView={() => {
+                  /* completed detail still viewable */
+                  setViewTask(t);
+                }}
               />
             ))}
           </div>
@@ -296,16 +273,27 @@ export default function TaskBoard() {
 
       {showModal && (
         <TaskFormModal
-          onAdd={handleAddTask}
-          onClose={() => setShowModal(false)}
+          initialTask={editingTask ?? undefined}
+          onAdd={(payload) => {
+            handleAddTask(payload as Omit<Task, "id">);
+          }}
+          onUpdate={(updated) => handleUpdateTask(updated)}
+          onClose={() => {
+            setShowModal(false);
+            setEditingTask(null);
+          }}
         />
       )}
 
-      {editingTask && (
-        <TaskFormModal
-          initialTask={editingTask}
-          onUpdate={handleUpdateTask}
-          onClose={() => setEditingTask(null)}
+      {viewTask && (
+        <TaskDetailModal
+          task={viewTask}
+          onClose={() => setViewTask(null)}
+          onEdit={(t) => {
+            setEditingTask(t);
+            setViewTask(null);
+            setShowModal(true);
+          }}
         />
       )}
     </div>

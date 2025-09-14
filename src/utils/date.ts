@@ -6,7 +6,6 @@ export function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
-// Convert a Date -> "YYYY-MM-DDTHH:MM" (local) for <input type="datetime-local">
 export function toLocalInputValue(d: Date) {
   const year = d.getFullYear();
   const month = pad(d.getMonth() + 1);
@@ -16,10 +15,11 @@ export function toLocalInputValue(d: Date) {
   return `${year}-${month}-${day}T${hour}:${min}`;
 }
 
-// Parse "YYYY-MM-DDTHH:MM" (from datetime-local) -> Date in local time
 export function parseLocalInputToDate(value: string) {
   if (!value) throw new Error("Invalid datetime value");
-  if (value.includes("Z") || value.includes("+")) return new Date(value);
+  // If full ISO with Z/offset, let Date parse it
+  if (value.includes("Z") || /[+\-]\d{2}:\d{2}$/.test(value))
+    return new Date(value);
   const parts = value.split("T");
   if (parts.length !== 2) return new Date(value);
   const [y, m, d] = parts[0].split("-").map(Number);
@@ -27,9 +27,9 @@ export function parseLocalInputToDate(value: string) {
   return new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, 0, 0);
 }
 
-// Format ISO -> "HH:MM — DD/MM/YYYY" (local)
 export function formatLocalDateTime(iso: string) {
   const d = new Date(iso);
+  if (!isFinite(d.getTime())) return "";
   const hh = pad(d.getHours());
   const mm = pad(d.getMinutes());
   const dd = pad(d.getDate());
@@ -38,7 +38,6 @@ export function formatLocalDateTime(iso: string) {
   return `${hh}:${mm} — ${dd}/${mmth}/${yyyy}`;
 }
 
-// midnight local timestamp (ms)
 export function localMidnightTs(d: Date) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -64,13 +63,26 @@ export function normalizeAllDayRange(start: Date) {
   return { startISO: startCopy.toISOString(), endISO: end.toISOString() };
 }
 
-// Map Task -> FullCalendar event-like object
 export function taskToEvent(task: Task) {
+  // Ensure start exists
+  const start = task.dueDate;
+  let end = task.endDate ?? undefined;
+
+  // If allDay and no explicit end, make end = next day start
+  if (task.allDay) {
+    if (!end) {
+      const s = new Date(task.dueDate);
+      const r = normalizeAllDayRange(s);
+      end = r.endISO;
+      // for some calendars you may set allDay:true and end = next day
+    }
+  }
+
   return {
     id: task.id,
     title: task.title,
-    start: task.dueDate,
-    end: task.endDate ?? undefined,
+    start,
+    end,
     allDay: !!task.allDay,
     extendedProps: {
       priority: task.priority,

@@ -11,6 +11,15 @@ interface Props {
   onView?: (task: Task) => void;
 }
 
+function formatDateOnly(iso?: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
 export default function TaskItem({
   task,
   onToggle,
@@ -21,6 +30,21 @@ export default function TaskItem({
   const due = new Date(task.dueDate);
   const isOverdue = !task.completed && due.getTime() < Date.now();
   const column = getColumnFromDueDate(task.dueDate);
+
+  const startLabel = task.allDay
+    ? `${formatDateOnly(task.dueDate)} (All day)`
+    : formatLocalDateTime(task.dueDate);
+
+  let endLabel: string | null = null;
+  if (task.endDate) {
+    if (task.allDay) {
+      const e = new Date(task.endDate);
+      e.setDate(e.getDate() - 1);
+      endLabel = `${formatDateOnly(e.toISOString())} (All day)`;
+    } else {
+      endLabel = formatLocalDateTime(task.endDate);
+    }
+  }
 
   return (
     <div
@@ -41,20 +65,30 @@ export default function TaskItem({
           type="checkbox"
           checked={task.completed}
           onChange={(e) => {
-            e.stopPropagation();
             onToggle?.(task.id);
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+          onKeyDown={(e) => {
+            // stop Enter / Space from bubbling to parent
+            if (e.key === " " || e.key === "Spacebar" || e.key === "Enter") {
+              e.stopPropagation();
+            }
           }}
           aria-label={`Toggle complete ${task.title}`}
         />
+
         <div className={styles.titleWrap}>
           <h4 className={styles.cardTitle} title={task.title}>
             {task.title}
           </h4>
-          {task.description && (
+          {task.description ? (
             <p className={styles.desc}>{task.description}</p>
-          )}
+          ) : null}
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+
+        <div className={styles.rightControls}>
           <span className={`${styles.priority} ${styles[task.priority]}`}>
             {task.priority}
           </span>
@@ -62,20 +96,12 @@ export default function TaskItem({
       </div>
 
       <div className={styles.cardMeta}>
-        <span className={styles.dueDate}>
-          {formatLocalDateTime(task.dueDate)}
-        </span>
+        <div className={styles.dateWrap}>
+          <span className={styles.dueDate}>{startLabel}</span>
+          {endLabel && <span className={styles.endDate}>→ {endLabel}</span>}
+        </div>
+
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button
-            className={styles.iconBtn}
-            title="Edit"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit?.(task);
-            }}
-          >
-            ✏️
-          </button>
           <button
             className={styles.deleteBtn}
             title="Delete"

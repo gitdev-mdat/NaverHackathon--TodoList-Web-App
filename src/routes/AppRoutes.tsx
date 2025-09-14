@@ -6,7 +6,7 @@ import Register from "../pages/Register";
 import TaskBoard from "../pages/TaskBoard";
 import ProtectedRoute from "./ProtectedRoute";
 import DashboardLayout from "../pages/DashboardLayout";
-
+import CalendarPage from "../pages/CalendarPage";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -25,6 +25,7 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="tasks" replace />} />
         {/* <Route path="dashboard" element={<DashboardHome />} /> */}
         <Route path="tasks" element={<TaskBoard />} />
+        <Route path="calendar" element={<CalendarPage />} />
         {/* <Route path="calendar" element={<CalendarPage />} /> */}
       </Route>
 
