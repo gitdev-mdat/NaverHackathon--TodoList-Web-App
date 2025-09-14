@@ -10,7 +10,6 @@
   --ring: 0 0 0 3px rgba(26, 122, 255, 0.25);
 }
 
-/* reset nhỏ */
 * {
   box-sizing: border-box;
 }
@@ -143,7 +142,7 @@
 .heroBadge {
   display: inline-block;
   position: relative;
-  overflow: hidden; /* để hiệu ứng không tràn ra ngoài */
+  overflow: hidden;
   background: rgba(10, 75, 155, 0.08);
   color: var(--blue);
   border: 1px solid rgba(10, 75, 155, 0.2);
@@ -155,7 +154,6 @@
   box-shadow: var(--shadow);
 }
 
-/* hiệu ứng bóng loáng */
 .heroBadge::after {
   content: "";
   position: absolute;

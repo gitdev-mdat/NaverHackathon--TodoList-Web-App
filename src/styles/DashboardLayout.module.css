@@ -28,7 +28,7 @@
 .content {
   flex: 1;
   padding: 24px;
-  overflow-y: auto;
+  overflow-y: hidden; /* không cho content scroll */
 }
 
 /* Scrollbar custom */

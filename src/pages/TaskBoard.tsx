@@ -1,136 +1,224 @@
-import { useEffect, useState } from "react";
+// components/TaskBoard.tsx
+import { useEffect, useMemo, useState } from "react";
 import TaskItem from "../components/TaskItem";
-import TaskForm from "../components/TaskForm";
-import { taskApi } from "../api/taskApi";
+import TaskFormModal from "../components/TaskFormModal";
 import type { Task } from "../types/Task";
 import styles from "../styles/TaskBoard.module.css";
+import { getColumnFromDueDate } from "../utils/date";
 
-const ITEMS_PER_LOAD = 10;
+const STORAGE_KEY = "tasks_v1";
 
 export default function TaskBoard() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [visible, setVisible] = useState<{ [key: string]: number }>({
-    today: ITEMS_PER_LOAD,
-    future: ITEMS_PER_LOAD,
-    past: ITEMS_PER_LOAD,
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    try {
+      const s = localStorage.getItem(STORAGE_KEY);
+      return s ? (JSON.parse(s) as Task[]) : [];
+    } catch {
+      return [];
+    }
   });
+  const [showModal, setShowModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState<
+    "all" | "low" | "medium" | "high"
+  >("all");
+  const [sortAsc, setSortAsc] = useState(true);
 
-  // Fetch tasks
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        setLoading(true);
-        const data = await taskApi.getAll();
-        setTasks(data);
-      } catch {
-        setError("❌ Không thể tải danh sách task");
-      } finally {
-        setLoading(false);
-      }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    } catch {}
+  }, [tasks]);
+
+  const handleAddTask = (task: Omit<Task, "id">) => {
+    const newTask: Task = {
+      ...task,
+      id: String(Date.now()),
+      completed: false,
     };
-    fetchTasks();
-  }, []);
-
-  // CRUD
-  const handleAddTask = async (task: Omit<Task, "id">) => {
-    const newTask = await taskApi.create(task);
-    setTasks((prev) => [...prev, newTask]);
+    setTasks((prev) => [newTask, ...prev]);
+    setShowModal(false);
   };
 
-  const handleToggle = async (id: string) => {
-    const task = tasks.find((t) => t.id === id);
-    if (!task) return;
-    const updated = await taskApi.update(id, { completed: !task.completed });
-    setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
-  };
-
-  const handleDelete = async (id: string) => {
-    await taskApi.delete(id);
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-  };
-
-  // Group tasks by time
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const groups = {
-    today: [] as Task[],
-    future: [] as Task[],
-    past: [] as Task[],
-  };
-
-  tasks.forEach((task) => {
-    const due = new Date(task.dueDate);
-    due.setHours(0, 0, 0, 0);
-    if (due.getTime() === today.getTime()) groups.today.push(task);
-    else if (due > today) groups.future.push(task);
-    else groups.past.push(task);
-  });
-
-  // Sort groups
-  groups.future.sort((a, b) => +new Date(a.dueDate) - +new Date(b.dueDate));
-  groups.past.sort((a, b) => +new Date(b.dueDate) - +new Date(a.dueDate));
-
-  // Section renderer
-  const renderColumn = (
-    key: "today" | "future" | "past",
-    label: string,
-    icon: string
-  ) => {
-    const list = groups[key];
-    const visibleCount = visible[key];
-    return (
-      <div className={styles.column}>
-        <h3 className={styles.columnTitle}>
-          <span>{icon}</span> {label}
-        </h3>
-        {list.length === 0 ? (
-          <p className={styles.empty}>🎉 Không có task.</p>
-        ) : (
-          <>
-            {list.slice(0, visibleCount).map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={handleToggle}
-                onDelete={handleDelete}
-              />
-            ))}
-            {visibleCount < list.length && (
-              <button
-                onClick={() =>
-                  setVisible((prev) => ({
-                    ...prev,
-                    [key]: prev[key] + ITEMS_PER_LOAD,
-                  }))
-                }
-                className={styles.loadMore}
-              >
-                Xem thêm...
-              </button>
-            )}
-          </>
-        )}
-      </div>
+  const handleToggleComplete = (id: string) => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              completed: !t.completed,
+              updatedAt: new Date().toISOString(),
+            }
+          : t
+      )
     );
   };
 
-  if (loading) return <p className={styles.state}>⏳ Đang tải tasks...</p>;
-  if (error) return <p className={styles.state}>{error}</p>;
+  const handleDelete = (id: string) => {
+    if (!confirm("Xóa task này?")) return;
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  // filtered + search
+  const filtered = useMemo(() => {
+    return tasks.filter((t) => {
+      if (priorityFilter !== "all" && t.priority !== priorityFilter)
+        return false;
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        if (
+          !t.title.toLowerCase().includes(q) &&
+          !(t.description || "").toLowerCase().includes(q)
+        )
+          return false;
+      }
+      return true;
+    });
+  }, [tasks, search, priorityFilter]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const na = new Date(a.dueDate).getTime();
+      const nb = new Date(b.dueDate).getTime();
+      return sortAsc ? na - nb : nb - na;
+    });
+  }, [filtered, sortAsc]);
+
+  // group by column using utils
+  const todayTasks = sorted.filter(
+    (t) => getColumnFromDueDate(t.dueDate) === "today" && !t.completed
+  );
+  const futureTasks = sorted.filter(
+    (t) => getColumnFromDueDate(t.dueDate) === "future" && !t.completed
+  );
+  const pastTasks = sorted.filter(
+    (t) => getColumnFromDueDate(t.dueDate) === "past" && !t.completed
+  );
+
+  // counts (including completed hidden? we show only active counts)
+  const counts = {
+    today: todayTasks.length,
+    future: futureTasks.length,
+    past: pastTasks.length,
+    completed: tasks.filter((t) => t.completed).length,
+  };
 
   return (
     <div className={styles.wrapper}>
       <div className={styles.header}>
-        <h2>📝 Task Board</h2>
-        <TaskForm onAdd={handleAddTask} />
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <h2 className={styles.title}>📝 Task Board</h2>
+          <div className={styles.searchWrap}>
+            <input
+              placeholder="Search tasks..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={styles.search}
+            />
+            <button
+              className={styles.clear}
+              onClick={() => setSearch("")}
+              aria-label="Clear search"
+            >
+              ✕
+            </button>
+          </div>
+          <select
+            className={styles.filter}
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value as any)}
+          >
+            <option value="all">All priorities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+
+          <button
+            className={styles.sortBtn}
+            onClick={() => setSortAsc((s) => !s)}
+            title="Toggle sort"
+          >
+            {sortAsc ? "Sort ↑" : "Sort ↓"}
+          </button>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div className={styles.countBadge}>
+            Active: {counts.today + counts.future + counts.past}
+          </div>
+          <button
+            className={styles.globalAddBtn}
+            onClick={() => setShowModal(true)}
+          >
+            + Task
+          </button>
+        </div>
       </div>
+
       <div className={styles.board}>
-        {renderColumn("today", "Hôm nay", "📅")}
-        {renderColumn("future", "Tương lai", "🔮")}
-        {renderColumn("past", "Quá khứ", "⏳")}
+        {/* Today */}
+        <div className={styles.column}>
+          <h3 className={styles.columnTitle}>
+            📅 Hôm nay <span className={styles.colCount}>{counts.today}</span>
+          </h3>
+          {todayTasks.length === 0 && (
+            <p className={styles.empty}>Không có task hôm nay 🎉</p>
+          )}
+          {todayTasks.map((task) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              onToggle={handleToggleComplete}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+
+        {/* Future */}
+        <div className={styles.column}>
+          <h3 className={styles.columnTitle}>
+            🔮 Tương lai{" "}
+            <span className={styles.colCount}>{counts.future}</span>
+          </h3>
+          {futureTasks.length === 0 && (
+            <p className={styles.empty}>Chưa có task tương lai</p>
+          )}
+          {futureTasks.map((task) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              onToggle={handleToggleComplete}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+
+        {/* Past */}
+        <div className={styles.column}>
+          <h3 className={styles.columnTitle}>
+            ⏳ Quá khứ <span className={styles.colCount}>{counts.past}</span>
+          </h3>
+          {pastTasks.length === 0 && (
+            <p className={styles.empty}>Không có task trễ hạn 🎉</p>
+          )}
+          {pastTasks.map((task) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              onToggle={handleToggleComplete}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
       </div>
+
+      {showModal && (
+        <TaskFormModal
+          onAdd={handleAddTask}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   );
 }
