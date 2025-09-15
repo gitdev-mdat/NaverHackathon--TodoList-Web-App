@@ -2,12 +2,12 @@
 # To-Do App – Preliminary Assignment Submission
 ## 🚀 Project Setup & Usage
 **How to install and run my project:**  
--- Clone repo
+** Clone repo
 git clone <repo-url>
 cd <repo-folder>
--- Install
+** Install
 npm install
-- Dev
+** Dev
 npm run dev 
 
 ## 🔗 Deployed Web URL or APK file
