@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import KPIGrid from "../components/dashboard/KPIGrid";
 import HeatmapCalendar from "../components/dashboard/HeatmapCalendar";
 import TasksTrendChart from "../components/dashboard/TasksTrendChart";
@@ -6,7 +6,7 @@ import RecentActivity from "../components/dashboard/RecentActivity";
 import useDashboardData from "../hooks/useDashboardData";
 import DayTasksModal from "../components/DayTasksModal";
 import styles from "../styles/Dashboard.module.css";
-import CreateFromNL from "../components/AI/CreateFromNL";
+
 export default function DashboardPage() {
   const {
     total,
