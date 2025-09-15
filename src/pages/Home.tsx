@@ -1,5 +1,3 @@
-// src/pages/Home.tsx
-import React from "react";
 import styles from "../styles/Home.module.css";
 import heroImage from "../assets/heroImage2.jpg";
 import { useNavigate } from "react-router-dom";

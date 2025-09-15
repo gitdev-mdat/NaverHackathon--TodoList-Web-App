@@ -1,4 +1,3 @@
-// components/dashboard/HeatmapCalendar.tsx
 import React from "react";
 import ReactCalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
