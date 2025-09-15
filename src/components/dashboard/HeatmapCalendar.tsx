@@ -44,7 +44,7 @@ export default function HeatmapCalendar({
           <span className={styles.legendLabel}>More</span>
         </div>
       </div>
-      // chỉ thay đổi chỗ render heatmap
+
       <div className={`${styles.heatmapWrap} ${styles.heatmap}`}>
         <ReactCalendarHeatmap
           startDate={data[0]?.date ?? undefined}
