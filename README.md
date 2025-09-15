@@ -1,20 +1,13 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/YHSq4TPZ)
 # To-Do App – Preliminary Assignment Submission
-⚠️ Please complete **all sections marked with the ✍️ icon** — these are required for your submission.
-
-👀 Please Check ASSIGNMENT.md file in this repository for assignment requirements.
-
 ## 🚀 Project Setup & Usage
 **How to install and run my project:**  
-
-# Clone repo
+-- Clone repo
 git clone <repo-url>
 cd <repo-folder>
-
-# Install
+-- Install
 npm install
-
-# Dev
+- Dev
 npm run dev 
 
 ## 🔗 Deployed Web URL or APK file
