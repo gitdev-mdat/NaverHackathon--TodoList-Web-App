@@ -1,4 +1,3 @@
-import React from "react";
 import type { Task } from "../types/Task";
 import styles from "../styles/TaskItem.module.css";
 import { formatLocalDateTime, getColumnFromDueDate } from "../utils/date";

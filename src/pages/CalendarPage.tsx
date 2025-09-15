@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import styles from "../styles/CalendarPage.module.css";
 import CalendarDayDot from "../components/CalendarDayDot";
 import DayTasksModal from "../components/DayTasksModal";

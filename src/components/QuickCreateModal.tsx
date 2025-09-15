@@ -1,7 +1,5 @@
-// components/QuickCreateModal.tsx
 import React, { useState } from "react";
 import styles from "../styles/CalendarPage.module.css";
-import type { Task } from "../types/Task";
 
 interface Prefill {
   title?: string;

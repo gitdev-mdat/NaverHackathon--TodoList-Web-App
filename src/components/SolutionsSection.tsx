@@ -1,4 +1,3 @@
-import React from "react";
 import styles from "../styles/Home.module.css";
 import { Globe, Server, ShieldCheck, Layers, Users, Zap } from "lucide-react";
 

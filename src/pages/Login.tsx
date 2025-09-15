@@ -1,9 +1,8 @@
-// src/pages/Login.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import styles from "../styles/Login.module.css";
 
-/** SHA-256 helper — same as Register.tsx */
+/** SHA-256 helper */
 async function sha256Hex(input: string) {
   const enc = new TextEncoder();
   const data = enc.encode(input);
@@ -14,7 +13,7 @@ async function sha256Hex(input: string) {
     .join("");
 }
 
-/** simple lockout helpers (session-scoped) */
+/** simple lockout helpers  */
 function getAttemptKey(username: string) {
   return `login_attempts_${username}`;
 }
@@ -41,10 +40,9 @@ export default function Login() {
     } catch {}
   }, [navigate]);
 
-  // normalized username (trimmed)
   const usernameTrimmed = useMemo(() => username.trim(), [username]);
 
-  // check if locked for this username (use trimmed username)
+  // check if locked for this username
   const isLocked = useMemo(() => {
     try {
       const lockRaw = sessionStorage.getItem(
@@ -85,7 +83,6 @@ export default function Login() {
         users = [];
       }
 
-      // lookup: exact match first, then case-insensitive fallback
       let idx = users.findIndex((u) => u.username === usernameTrimmed);
       if (idx === -1) {
         idx = users.findIndex(
@@ -108,10 +105,10 @@ export default function Login() {
       if (stored.passwordHash) {
         matched = inputHash === stored.passwordHash;
       } else if (stored.password) {
-        // legacy plain-text password: allow login and migrate to hash
+        // legacy plain-text password
         if (password === stored.password) {
           matched = true;
-          // perform migration: replace plain password with passwordHash
+          // perform migration
           users[idx] = { ...stored, passwordHash: inputHash };
           delete users[idx].password;
           try {

@@ -1,4 +1,3 @@
-import React from "react";
 import type { Task } from "../types/Task";
 import modalStyles from "../styles/TaskFormModal.module.css";
 import { formatLocalDateTime } from "../utils/date";

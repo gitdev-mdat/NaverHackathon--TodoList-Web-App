@@ -1,7 +1,6 @@
-// src/pages/Register.tsx
 import React, { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import styles from "../styles/Login.module.css"; // re-use and extend
+import styles from "../styles/Login.module.css";
 
 // helper: hash string with SHA-256 and return hex
 async function sha256Hex(input: string) {

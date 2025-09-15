@@ -1,5 +1,4 @@
-// components/AI/CreateFromNL.tsx
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   generateFromPromptClient,
   DEFAULT_GEMINI_MODEL,
@@ -111,12 +110,12 @@ Instruction:
                 finishReason === "MAX_TOKENS" || finishReason === "max_tokens",
             };
           }
-        } catch {}
+        } catch {
+          throw error;
+        }
       }
-
-      // deep search first string leaf
-      const findFirstString = (obj: any): string | null => {
-        if (!obj) return null;
+      const findFirstString = (obj: unknown): string | null => {
+        if (obj === null || obj === undefined) return null;
         if (typeof obj === "string") return obj;
         if (Array.isArray(obj)) {
           for (const it of obj) {
@@ -124,8 +123,9 @@ Instruction:
             if (x) return x;
           }
         } else if (typeof obj === "object") {
-          for (const k of Object.keys(obj)) {
-            const x = findFirstString(obj[k]);
+          const rec = obj as Record<string, unknown>;
+          for (const k of Object.keys(rec)) {
+            const x = findFirstString(rec[k]);
             if (x) return x;
           }
         }
@@ -298,11 +298,10 @@ Instruction:
       try {
         addTask?.(toAdd);
         createdCount += 1;
-      } catch (e: any) {
-        console.error("addTask error", e);
-        failures.push(
-          `Item ${idx + 1}: failed to add (${e?.message ?? "unknown"})`
-        );
+      } catch (err) {
+        console.error("addTask error", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        failures.push(`Item ${idx + 1}: failed to add (${msg || "unknown"})`);
       }
     }
 
