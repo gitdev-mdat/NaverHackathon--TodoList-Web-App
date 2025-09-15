@@ -63,8 +63,16 @@ export default function CreateFromNL() {
     } catch {}
   }, [remember, apiKey]);
 
+  const now = new Date();
+  const CURRENT_DATE = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+
   const promptTemplate = (userText: string) => `
+CURRENT_DATE: ${CURRENT_DATE}
+TIMEZONE: ${TIMEZONE}
+
 You are a strict JSON extractor. Parse the user's instruction into a JSON array of task objects.
+When the user uses relative words like "tomorrow", "today", "next week", resolve them relative to CURRENT_DATE above.
 RETURN ONLY A JSON ARRAY (no extra words, be compact).
 
 Schema:
@@ -111,7 +119,7 @@ Instruction:
             };
           }
         } catch {
-          throw error;
+          // ignore this path and try next
         }
       }
       const findFirstString = (obj: unknown): string | null => {
@@ -152,6 +160,160 @@ Instruction:
       if (match) return { text: match[0], truncated: false };
       return { text: bodyText, truncated: false };
     }
+  }
+
+  // --------- Minimal helpers to normalize model date outputs ----------
+  function formatYMDLocal(d: Date) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
+  }
+
+  /**
+   * Normalize ambiguous model dates into YYYY-MM-DD (prefer D/M/YYYY for VN).
+   * Handles:
+   * - "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SS"
+   * - "07/05/2024" (tries D/M then M/D)
+   * - "tomorrow", "ngày mai", "today", "hôm nay"
+   * - loose Date parse as fallback
+   */
+  function normalizeModelDateString(raw?: string | null): string | null {
+    if (!raw) return null;
+    const s = String(raw).trim();
+    if (!s) return null;
+
+    const now = new Date();
+
+    // ISO date-only or ISO datetime
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
+
+    // relative words (english + vietnamese)
+    if (/(tomorrow|ngày mai)/i.test(s)) {
+      const d = new Date(now);
+      d.setDate(d.getDate() + 1);
+      return formatYMDLocal(d);
+    }
+    if (/(today|hôm nay)/i.test(s)) {
+      return formatYMDLocal(now);
+    }
+
+    // slash format ambiguous "07/05/2024" or "5/7/24"
+    const slash = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if (slash) {
+      const a = Number(slash[1]),
+        b = Number(slash[2]),
+        yRaw = Number(slash[3]);
+      const y = yRaw < 100 ? 2000 + yRaw : yRaw;
+
+      // candidate A: D/M/YYYY (day=a, month=b)
+      if (a >= 1 && a <= 31 && b >= 1 && b <= 12) {
+        const candA = new Date(y, b - 1, a);
+        return formatYMDLocal(candA);
+      }
+
+      // candidate B: M/D/YYYY fallback
+      if (a >= 1 && a <= 12 && b >= 1 && b <= 31) {
+        const candB = new Date(y, a - 1, b);
+        return formatYMDLocal(candB);
+      }
+    }
+
+    // last resort: try Date parser
+    const parsedDt = new Date(s);
+    if (!isNaN(parsedDt.getTime())) {
+      return formatYMDLocal(parsedDt);
+    }
+
+    return null;
+  }
+
+  // convert YYYY-MM-DD to local ISO at given hour (hour default 9)
+  function ymdToLocalISO(ymd: string, hour = 9) {
+    const [yy, mm, dd] = ymd.split("-").map(Number);
+    const dt = new Date(yy, (mm || 1) - 1, dd || 1, hour, 0, 0, 0);
+    return dt.toISOString();
+  }
+
+  // Parse date/time from user's plain instruction as fallback (minimal)
+  function parseDateFromInstruction(text: string) {
+    if (!text) return null;
+    const s = text.toLowerCase();
+    const nowLocal = new Date();
+
+    // tomorrow / ngày mai
+    if (/(ngày mai|tomorrow)/i.test(s)) {
+      const d = new Date(nowLocal);
+      d.setDate(d.getDate() + 1);
+      const hourMatch = s.match(/(\d{1,2})(?=\s*(?:h|:|giờ|am|pm))/i);
+      const hour = hourMatch ? Number(hourMatch[1]) : undefined;
+      return { date: d, hour };
+    }
+
+    // today / hôm nay
+    if (/(hôm nay|today)/i.test(s)) {
+      const d = new Date(nowLocal);
+      const hourMatch = s.match(/(\d{1,2})(?=\s*(?:h|:|giờ|am|pm))/i);
+      const hour = hourMatch ? Number(hourMatch[1]) : undefined;
+      return { date: d, hour };
+    }
+
+    // explicit YYYY-MM-DD
+    const ymd = s.match(/(\d{4}-\d{2}-\d{2})/);
+    if (ymd) return { date: new Date(ymd[1]) };
+
+    // slash form D/M/Y or M/D/Y -> assume D/M/Y (VN)
+    const slash = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+    if (slash) {
+      const a = Number(slash[1]),
+        b = Number(slash[2]),
+        yRaw = Number(slash[3]);
+      const y = yRaw < 100 ? 2000 + yRaw : yRaw;
+      const cand = new Date(y, b - 1, a);
+      return { date: cand };
+    }
+
+    // time-only like "4h" or "4:30" -> today at that hour
+    const timeOnly = s.match(/(\d{1,2})(?=\s*(?:h|:|giờ))/i);
+    if (timeOnly) {
+      const hour = Number(timeOnly[1]);
+      const d = new Date(nowLocal);
+      return { date: d, hour };
+    }
+
+    return null;
+  }
+  // -------------------------------------------------------------------
+
+  // decide whether to override model date with instruction-derived date
+  function shouldUseFallbackForDate(
+    normalizedYmd: string | null,
+    instr: string | null
+  ) {
+    if (!instr) return false;
+    const s = instr.toLowerCase();
+    const relative =
+      /(tomorrow|ngày mai|today|hôm nay|next week|tuần tới|sáng mai|chiều mai)/i.test(
+        s
+      );
+    if (!relative) return false;
+    if (!normalizedYmd) return true;
+    try {
+      const nowStart = new Date();
+      nowStart.setHours(0, 0, 0, 0);
+      const modelDate = new Date(normalizedYmd + "T00:00:00");
+      const diffDays = Math.round(
+        (modelDate.getTime() - nowStart.getTime()) / (24 * 60 * 60 * 1000)
+      );
+      if (Math.abs(diffDays) > 7) return true; // model date far off
+      const modelYear = modelDate.getFullYear();
+      if (modelYear !== new Date().getFullYear() && Math.abs(diffDays) > 1)
+        return true;
+    } catch {
+      return true;
+    }
+    return false;
   }
 
   const runParse = useCallback(async () => {
@@ -221,15 +383,68 @@ Instruction:
 
       // Map parsed JSON -> parsed tasks -> normalize -> items
       const mapped: Item[] = j.map((p: any) => {
+        const rawDue = p?.dueDate ?? p?.date ?? null;
+        const rawEnd = p?.endDate ?? null;
+        const normalizedDue = normalizeModelDateString(rawDue);
+        const normalizedEnd = normalizeModelDateString(rawEnd);
+
+        const isAllDay = !!p?.allDay;
+
+        // fallback: try parse from instruction if model omitted dueDate
+        const fallback =
+          !normalizedDue && input ? parseDateFromInstruction(input) : null;
+
+        // decide chosen due ISO using override rules
+        const wantFallback = shouldUseFallbackForDate(normalizedDue, input);
+        let chosenDueISO: string | null = null;
+        if (wantFallback) {
+          const fb = parseDateFromInstruction(input);
+          if (fb?.date) {
+            const hr = typeof fb.hour === "number" ? fb.hour : isAllDay ? 0 : 9;
+            const d = new Date(fb.date);
+            d.setHours(hr, 0, 0, 0);
+            chosenDueISO = d.toISOString();
+          } else if (normalizedDue) {
+            chosenDueISO = ymdToLocalISO(normalizedDue, isAllDay ? 0 : 9);
+          } else if (typeof p?.dueDate === "string") {
+            chosenDueISO = p.dueDate;
+          } else {
+            chosenDueISO = null;
+          }
+        } else {
+          if (normalizedDue) {
+            chosenDueISO = ymdToLocalISO(normalizedDue, isAllDay ? 0 : 9);
+          } else if (typeof p?.dueDate === "string") {
+            chosenDueISO = p.dueDate;
+          } else if (fallback?.date) {
+            const hr =
+              typeof fallback.hour === "number"
+                ? fallback.hour
+                : isAllDay
+                ? 0
+                : 9;
+            const d = new Date(fallback.date);
+            d.setHours(hr, 0, 0, 0);
+            chosenDueISO = d.toISOString();
+          } else {
+            chosenDueISO = null;
+          }
+        }
+
         const parsed: ParsedTask = {
-          title: String(p?.title ?? "").trim(),
+          title: String(p?.title ?? p?.task ?? p?.name ?? "").trim(),
           description: p?.description ?? null,
           priority: ["low", "medium", "high"].includes(p?.priority)
             ? p.priority
             : "medium",
-          allDay: !!p?.allDay,
-          dueDate: p?.dueDate ?? null,
-          endDate: p?.endDate ?? null,
+          allDay: isAllDay,
+          // chosenDueISO already local-constructed
+          dueDate: chosenDueISO,
+          endDate: normalizedEnd
+            ? ymdToLocalISO(normalizedEnd, 18)
+            : typeof p?.endDate === "string"
+            ? p.endDate
+            : null,
           tags: Array.isArray(p?.tags) ? p.tags.map(String) : [],
         };
 
@@ -289,7 +504,7 @@ Instruction:
         title: data.title,
         description: data.description ?? "",
         dueDate: data.dueDate,
-        endDate: data.endDate,
+        endDate: data.endDate ?? undefined, // ensure undefined (not null)
         allDay: !!data.allDay,
         priority: data.priority ?? "medium",
         createdAt: new Date().toISOString(),
@@ -615,18 +830,21 @@ Instruction:
                         ""
                       ).slice(0, 10)}
                       onChange={(e) => {
-                        const val = e.target.value;
-                        if (
-                          ed?.allDay ??
-                          nr.task?.allDay ??
-                          !!it.parsed.allDay
-                        ) {
-                          const iso = new Date(val + "T00:00:00").toISOString();
-                          updateEditable(i, { dueDate: iso });
-                        } else {
-                          const iso = new Date(val + "T09:00:00").toISOString();
-                          updateEditable(i, { dueDate: iso });
-                        }
+                        const val = e.target.value; // "YYYY-MM-DD"
+                        if (!val) return;
+                        const [year, month, day] = val.split("-").map(Number);
+                        const isAllDay =
+                          ed?.allDay ?? nr.task?.allDay ?? !!it.parsed.allDay;
+                        const dt = new Date(
+                          year,
+                          (month || 1) - 1,
+                          day,
+                          isAllDay ? 0 : 9,
+                          0,
+                          0,
+                          0
+                        );
+                        updateEditable(i, { dueDate: dt.toISOString() });
                       }}
                       style={{
                         marginLeft: "auto",
