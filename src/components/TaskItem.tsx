@@ -1,6 +1,6 @@
 import type { Task } from "../types/Task";
 import styles from "../styles/TaskItem.module.css";
-import { formatLocalDateTime, getColumnFromDueDate } from "../utils/date";
+import { formatLocalDateTime } from "../utils/date";
 
 interface Props {
   task: Task;
@@ -19,16 +19,9 @@ function formatDateOnly(iso?: string) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-export default function TaskItem({
-  task,
-  onToggle,
-  onDelete,
-  onEdit,
-  onView,
-}: Props) {
+export default function TaskItem({ task, onToggle, onDelete, onView }: Props) {
   const due = new Date(task.dueDate);
   const isOverdue = !task.completed && due.getTime() < Date.now();
-  const column = getColumnFromDueDate(task.dueDate);
 
   const startLabel = task.allDay
     ? `${formatDateOnly(task.dueDate)} (All day)`
@@ -63,7 +56,7 @@ export default function TaskItem({
         <input
           type="checkbox"
           checked={task.completed}
-          onChange={(e) => {
+          onChange={() => {
             onToggle?.(task.id);
           }}
           onClick={(e) => {

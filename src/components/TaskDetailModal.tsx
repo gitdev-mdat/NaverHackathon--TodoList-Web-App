@@ -17,7 +17,7 @@ function formatDateOnly(iso?: string) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-export default function TaskDetailModal({ task, onClose, onEdit }: Props) {
+export default function TaskDetailModal({ task, onClose }: Props) {
   const startLabel = task.allDay
     ? `${formatDateOnly(task.dueDate)} (all day)`
     : formatLocalDateTime(task.dueDate);

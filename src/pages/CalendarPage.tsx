@@ -9,9 +9,9 @@ import type { Task } from "../types/Task";
 function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
-function endOfMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
-}
+// function endOfMonth(d: Date) {
+//   return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+// }
 function startOfWeekMon(d: Date) {
   // Monday start
   const day = d.getDay(); // 0 Sun .. 6 Sat
@@ -72,7 +72,7 @@ export default function CalendarPage() {
   const [showCompleted, setShowCompleted] = useState<boolean>(true);
 
   const monthStart = startOfMonth(cursor);
-  const monthEnd = endOfMonth(cursor);
+  // const monthEnd = endOfMonth(cursor);
   const gridStart = startOfWeekMon(monthStart);
   // build 6 weeks grid (6*7 = 42 cells)
   const grid: Date[] = [];

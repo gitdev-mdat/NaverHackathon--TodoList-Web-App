@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import type { Task } from "../types/Task";
 import styles from "../styles/TaskFormModal.module.css";
@@ -15,6 +14,7 @@ interface Props {
   onUpdate?: (task: Task) => void;
   onClose: () => void;
   initialTask?: Task | null;
+  saving?: boolean;
 }
 
 const MAX_TITLE = 80;
@@ -33,6 +33,7 @@ export default function TaskFormModal({
   onUpdate,
   onClose,
   initialTask = null,
+  saving = false,
 }: Props) {
   const [title, setTitle] = useState(initialTask?.title ?? "");
   const [description, setDescription] = useState(
@@ -81,7 +82,6 @@ export default function TaskFormModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // fix: when switching allDay we convert the stored value so preview logic works
   const handleAllDayToggle = (checked: boolean) => {
     if (checked) {
       // convert any datetime-local -> date-only yyyy-mm-dd
@@ -100,7 +100,6 @@ export default function TaskFormModal({
         } catch {}
       }
     } else {
-      // turning off allDay: if we have date-only, convert to datetime-local with same day at next hour
       if (!dueDateTime.includes("T") && dueDateTime) {
         const d = new Date(dueDateTime + "T09:00"); // default 09:00 local
         setDueDateTime(toLocalInputValue(d));
@@ -117,8 +116,7 @@ export default function TaskFormModal({
   const previewColumn = (() => {
     try {
       const parsed = allDay
-        ? // if dueDateTime includes T, parse it; else use date-only at midnight local
-          dueDateTime.includes("T")
+        ? dueDateTime.includes("T")
           ? parseLocalInputToDate(dueDateTime)
           : new Date(`${dueDateTime}T00:00`)
         : parseLocalInputToDate(dueDateTime);
@@ -177,7 +175,6 @@ export default function TaskFormModal({
 
     try {
       if (allDay) {
-        // dueDateTime and endDateTime are yyyy-mm-dd or maybe include T
         const s = dueDateTime.includes("T")
           ? parseLocalInputToDate(dueDateTime)
           : new Date(dueDateTime + "T00:00");
@@ -436,8 +433,14 @@ export default function TaskFormModal({
           {error && <div className={styles.error}>{error}</div>}
 
           <div className={styles.actions}>
-            <button type="submit" className={styles.saveBtn}>
-              {initialTask ? "Update" : "Save"}
+            <button type="submit" className={styles.saveBtn} disabled={saving}>
+              {saving
+                ? initialTask
+                  ? "Updating..."
+                  : "Saving..."
+                : initialTask
+                ? "Update"
+                : "Save"}
             </button>
             <button
               type="button"

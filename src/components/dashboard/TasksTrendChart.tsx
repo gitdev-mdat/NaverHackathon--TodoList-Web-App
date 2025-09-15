@@ -48,12 +48,6 @@ export default function TasksTrendChart({
     return sorted.slice(Math.max(0, sorted.length - N));
   }, [sorted, range]);
 
-  const totals = useMemo(() => {
-    const created = sliced.reduce((s, p) => s + (p.created || 0), 0);
-    const completed = sliced.reduce((s, p) => s + (p.completed || 0), 0);
-    return { created, completed };
-  }, [sliced]);
-
   const tickFormatter = (v: string) => {
     if (!v) return "";
     return v.slice(5);
