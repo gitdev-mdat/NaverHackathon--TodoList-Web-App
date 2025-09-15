@@ -1,74 +1,141 @@
+// src/pages/Home.tsx
+import React from "react";
 import styles from "../styles/Home.module.css";
 import heroImage from "../assets/heroImage2.jpg";
 import { useNavigate } from "react-router-dom";
+import FeaturesSection from "../components/FeaturesSection";
+import SolutionsSection from "../components/SolutionsSection";
 
 export default function Home() {
   const navigate = useNavigate();
 
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) {
+      // fallback: scroll to top
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
-    <div className={styles.page} id="trang-chu">
+    <div className={styles.page} id="home">
       <header className={styles.header}>
         <div className={styles.navContainer}>
           <div className={styles.logo}>TodoNaver</div>
-          <nav aria-label="Điều hướng chính">
+
+          <nav
+            className={styles.nav}
+            aria-label="Main navigation"
+            role="navigation"
+          >
             <ul className={styles.navMenu}>
               <li>
-                <a href="#trang-chu">Trang chủ</a>
+                <a
+                  href="#home"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollTo("home");
+                  }}
+                >
+                  Home
+                </a>
               </li>
               <li>
-                <a href="#tinh-nang">Tính năng</a>
+                <a
+                  href="#features"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollTo("features");
+                  }}
+                >
+                  Features
+                </a>
               </li>
               <li>
-                <a href="#giai-phap">Giải pháp</a>
+                <a
+                  href="#solutions"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollTo("solutions");
+                  }}
+                >
+                  Solutions
+                </a>
               </li>
               <li>
-                <a href="#lien-he">Liên hệ</a>
+                <a
+                  href="#contact"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollTo("contact");
+                  }}
+                >
+                  Contact
+                </a>
               </li>
             </ul>
           </nav>
-          <a
-            href="#dang-nhap"
+
+          <button
             className={styles.ctaButton}
             onClick={() => navigate("/login")}
+            aria-label="Sign in"
           >
-            Đăng nhập
-          </a>
+            Sign in
+          </button>
         </div>
       </header>
 
       <section className={styles.hero} aria-labelledby="hero-title">
         <div className={styles.heroContainer}>
           <div className={styles.heroContent}>
-            <div className={styles.heroBadge}>
-              🚀 Trình quản lý công việc thông minh
+            <div className={styles.heroBadge} aria-hidden>
+              🚀 Smart task manager
             </div>
+
             <h1 id="hero-title" className={styles.heroTitle}>
-              Quản lý dễ dàng
+              Manage with ease
               <br />
-              <span className={styles.heroTitleAccent}>
-                Danh sách việc cần làm
-              </span>
+              <span className={styles.heroTitleAccent}>Your to-do list</span>
             </h1>
+
             <p className={styles.heroSubtitle}>
-              Nền tảng TodoList hiện đại giúp bạn sắp xếp công việc, theo dõi
-              tiến độ và hoàn thành mục tiêu mỗi ngày một cách hiệu quả.
+              A modern TodoList platform to organize your work, track progress,
+              and achieve your goals day by day — efficiently.
             </p>
+
             <div className={styles.heroButtons}>
-              <button className={styles.btnPrimary}>Khám phá ngay</button>
-              <button className={styles.btnSecondary}>Xem demo</button>
+              <button
+                className={styles.btnPrimary}
+                onClick={() => scrollTo("features")}
+                aria-label="Explore features"
+              >
+                Explore now
+              </button>
+
+              <button
+                className={styles.btnSecondary}
+                onClick={() => navigate("/demo")}
+                aria-label="View demo"
+              >
+                View demo
+              </button>
             </div>
-            <div className={styles.heroStats}>
+
+            <div className={styles.heroStats} aria-hidden>
               <div className={styles.statItem}>
                 <span className={styles.statNumber}>1K+</span>
-                <span className={styles.statLabel}>Người dùng</span>
+                <span className={styles.statLabel}>Users</span>
               </div>
               <div className={styles.statItem}>
                 <span className={styles.statNumber}>5K+</span>
-                <span className={styles.statLabel}>Nhiệm vụ</span>
+                <span className={styles.statLabel}>Tasks</span>
               </div>
               <div className={styles.statItem}>
                 <span className={styles.statNumber}>98%</span>
-                <span className={styles.statLabel}>Hoàn thành</span>
+                <span className={styles.statLabel}>Completed</span>
               </div>
             </div>
           </div>
@@ -78,13 +145,35 @@ export default function Home() {
               <img
                 src={heroImage}
                 className={styles.heroImage}
-                alt="Hình minh họa Todo App"
+                alt="Illustration of the TodoNaver app UI"
                 style={{ width: "100%", height: "450px", objectFit: "cover" }}
               />
             </div>
           </div>
         </div>
       </section>
+
+      <div className={styles.waveSeparator} aria-hidden>
+        <svg viewBox="0 0 1200 60" preserveAspectRatio="none" aria-hidden>
+          <path
+            d="M0,30 C150,80 350,0 600,30 C850,60 1050,10 1200,30 L1200 60 L0 60 Z"
+            fill="white"
+          />
+        </svg>
+      </div>
+
+      <div className={styles.featuresOverlap}>
+        <FeaturesSection />
+      </div>
+
+      <SolutionsSection />
+
+      <footer
+        id="contact"
+        style={{ padding: 36, textAlign: "center", color: "var(--muted)" }}
+      >
+        <div>Contact — thiminhdatdaknong@gmail.com</div>
+      </footer>
     </div>
   );
 }

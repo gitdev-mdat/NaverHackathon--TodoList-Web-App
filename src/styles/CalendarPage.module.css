@@ -1,0 +1,236 @@
+.page {
+  padding: 16px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial;
+}
+.header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.title {
+  margin: 0 auto;
+  font-size: 18px;
+}
+.iconBtn {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+}
+.todayBtn {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background: #f3f4f6;
+  cursor: pointer;
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.weekdayCell {
+  text-align: center;
+  font-weight: 600;
+  padding: 6px 4px;
+  color: #374151;
+}
+.dayCell {
+  min-height: 90px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #eee;
+  padding: 8px;
+  text-align: left;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+}
+.outsideMonth {
+  opacity: 0.45;
+}
+.today {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+.dayNumberRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dayNumber {
+  font-weight: 600;
+  font-size: 13px;
+}
+.quickCreateBtn {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+}
+.hackBadge {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dotWrap {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dotHigh {
+  background: #ef4444;
+}
+.dotMedium {
+  background: #6366f1;
+}
+.dotLow {
+  background: #10b981;
+}
+.moreDots {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+.modalCard {
+  width: 720px;
+  max-width: 92%;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+.modalHeaderSmall {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+.closeSmall {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+}
+.modalBody {
+  padding: 12px 16px;
+  max-height: 60vh;
+  overflow: auto;
+}
+.modalFooter {
+  padding: 12px 16px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.empty {
+  color: #6b7280;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.taskRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px dashed #f3f4f6;
+}
+.taskCompleted {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+.taskLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.taskTitle {
+  font-weight: 600;
+}
+.taskMeta {
+  color: #6b7280;
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+}
+.taskActions {
+  display: flex;
+  gap: 8px;
+}
+
+.editBtn,
+.viewBtn,
+.saveBtn,
+.cancelBtn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+}
+.saveBtn {
+  background: #111827;
+  color: #fff;
+  border: none;
+}
+.input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+.textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  min-height: 80px;
+}
+.field {
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.inlineField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.moreDots {
+  margin-left: 6px;
+  color: #6b7280;
+  font-size: 12px;
+}

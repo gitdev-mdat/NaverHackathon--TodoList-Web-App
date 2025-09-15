@@ -1,31 +1,119 @@
 import React from "react";
-import { Task } from "../types/Task";
+import type { Task } from "../types/Task";
+import styles from "../styles/TaskItem.module.css";
+import { formatLocalDateTime, getColumnFromDueDate } from "../utils/date";
 
 interface Props {
   task: Task;
+  onToggle?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onEdit?: (task: Task) => void;
+  onView?: (task: Task) => void;
 }
 
-const TaskItem: React.FC<Props> = ({ task }) => {
-  return (
-    <li
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "10px",
-        marginBottom: "8px",
-        border: "1px solid #ccc",
-        borderRadius: "8px",
-        backgroundColor: task.completed ? "#e6ffe6" : "#fff",
-      }}
-    >
-      <div>
-        <strong>{task.title}</strong> <br />
-        <small>📅 {new Date(task.dueDate).toLocaleDateString()}</small>
-      </div>
-      <div>{task.completed ? "✅ Done" : "⏳ Pending"}</div>
-    </li>
-  );
-};
+function formatDateOnly(iso?: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
 
-export default TaskItem;
+export default function TaskItem({
+  task,
+  onToggle,
+  onDelete,
+  onEdit,
+  onView,
+}: Props) {
+  const due = new Date(task.dueDate);
+  const isOverdue = !task.completed && due.getTime() < Date.now();
+  const column = getColumnFromDueDate(task.dueDate);
+
+  const startLabel = task.allDay
+    ? `${formatDateOnly(task.dueDate)} (All day)`
+    : formatLocalDateTime(task.dueDate);
+
+  let endLabel: string | null = null;
+  if (task.endDate) {
+    if (task.allDay) {
+      const e = new Date(task.endDate);
+      e.setDate(e.getDate() - 1);
+      endLabel = `${formatDateOnly(e.toISOString())} (All day)`;
+    } else {
+      endLabel = formatLocalDateTime(task.endDate);
+    }
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onView?.(task)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onView?.(task);
+      }}
+      className={`${styles.card} ${task.completed ? styles.completed : ""} ${
+        isOverdue ? styles.overdue : ""
+      }`}
+      aria-label={task.title}
+      title={task.title}
+    >
+      <div className={styles.cardHeader}>
+        <input
+          type="checkbox"
+          checked={task.completed}
+          onChange={(e) => {
+            onToggle?.(task.id);
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+          onKeyDown={(e) => {
+            // stop Enter / Space from bubbling to parent
+            if (e.key === " " || e.key === "Spacebar" || e.key === "Enter") {
+              e.stopPropagation();
+            }
+          }}
+          aria-label={`Toggle complete ${task.title}`}
+        />
+
+        <div className={styles.titleWrap}>
+          <h4 className={styles.cardTitle} title={task.title}>
+            {task.title}
+          </h4>
+          {task.description ? (
+            <p className={styles.desc}>{task.description}</p>
+          ) : null}
+        </div>
+
+        <div className={styles.rightControls}>
+          <span className={`${styles.priority} ${styles[task.priority]}`}>
+            {task.priority}
+          </span>
+        </div>
+      </div>
+
+      <div className={styles.cardMeta}>
+        <div className={styles.dateWrap}>
+          <span className={styles.dueDate}>{startLabel}</span>
+          {endLabel && <span className={styles.endDate}>→ {endLabel}</span>}
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            className={styles.deleteBtn}
+            title="Delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.(task.id);
+            }}
+          >
+            🗑
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

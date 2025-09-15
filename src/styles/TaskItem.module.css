@@ -1,0 +1,154 @@
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 14px rgba(2, 6, 23, 0.04);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  outline: none;
+}
+.card:focus {
+  box-shadow: 0 8px 28px rgba(37, 99, 235, 0.08);
+  transform: translateY(-2px);
+}
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.completed {
+  opacity: 0.75;
+  background: #fbfdff;
+}
+.overdue {
+  border: 1px solid #fee2e2;
+  background: #fff5f5;
+}
+
+.cardHeader {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.titleWrap {
+  flex: 1;
+  min-width: 0; /* important for ellipsis */
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.desc {
+  margin: 6px 0 0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rightControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.dateWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dueDate {
+  color: #374151;
+  font-style: italic;
+}
+
+.endDate {
+  color: #475569;
+  font-size: 12px;
+}
+
+.iconBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.iconBtn:hover {
+  background: rgba(2, 6, 23, 0.04);
+}
+
+.deleteBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 14px;
+}
+.deleteBtn:hover {
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
+}
+
+/* priority badges */
+.priority {
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+.low {
+  background: #ecfdf5;
+  color: #065f46;
+}
+.medium {
+  background: #fffbeb;
+  color: #92400e;
+}
+.high {
+  background: #fff1f2;
+  color: #991b1b;
+}
+
+/* small responsive tweak */
+@media (max-width: 640px) {
+  .cardTitle {
+    font-size: 14px;
+  }
+  .desc {
+    font-size: 13px;
+  }
+  .card {
+    padding: 10px;
+  }
+}
