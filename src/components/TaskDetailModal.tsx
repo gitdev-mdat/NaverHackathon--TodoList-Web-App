@@ -17,7 +17,7 @@ function formatDateOnly(iso?: string) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-export default function TaskDetailModal({ task, onClose }: Props) {
+export default function TaskDetailModal({ task, onClose, onEdit }: Props) {
   const startLabel = task.allDay
     ? `${formatDateOnly(task.dueDate)} (all day)`
     : formatLocalDateTime(task.dueDate);
@@ -149,13 +149,18 @@ export default function TaskDetailModal({ task, onClose }: Props) {
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            {/* <button
+            <button
               type="button"
               className={modalStyles.saveBtn}
               onClick={() => {
+                console.log("DETAIL: Edit clicked", {
+                  id: task.id,
+                  completed: isCompleted,
+                  hasOnEdit: !!onEdit,
+                });
                 if (isCompleted) return;
+
                 onEdit?.(task);
-                onClose();
               }}
               disabled={isCompleted}
               title={
@@ -163,7 +168,7 @@ export default function TaskDetailModal({ task, onClose }: Props) {
               }
             >
               Edit
-            </button> */}
+            </button>
 
             <button
               type="button"

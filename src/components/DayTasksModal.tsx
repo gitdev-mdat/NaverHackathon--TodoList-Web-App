@@ -124,7 +124,14 @@ export default function DayTasksModal({ day, tasks, onClose, onEdit }: Props) {
       )}
 
       {viewing && (
-        <TaskDetailModal task={viewing} onClose={() => setViewing(null)} />
+        <TaskDetailModal
+          task={viewing}
+          onClose={() => setViewing(null)}
+          onEdit={(t) => {
+            setViewing(null);
+            setEditing(t);
+          }}
+        />
       )}
     </div>
   );
