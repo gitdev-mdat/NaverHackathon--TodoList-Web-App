@@ -2,9 +2,9 @@
 # To-Do App – Preliminary Assignment Submission
 ## 🚀 Project Setup & Usage
 **How to install and run my project:**  
-1. Clone repo
-2. Install
-3. Run
+1. Clone repo 
+2. Install (npm install)
+3. Run (npm run dev)
 
 ## 🔗 Deployed Web URL or APK file
 ✍️ [Paste your link here]
